@@ -1,0 +1,42 @@
+CC = g++ -m64 -std=c++17
+
+BIN_DIR = .
+SRC_DIR = src
+
+OCL_INC = -IKhronos
+OCL_LIB = -L/usr/lib/x86_64-linux-gnu/ -lOpenCL
+
+
+CFLAGS = -Wall -Wextra -Wsign-conversion -ffinite-math-only
+FLAGS_CPU = -O3
+FLAGS_GPU = -O2 -DGPU
+
+OBJS_CPU = marinc.o cpu.o
+OBJS_GPU = maring.o gpu.o
+
+DEPS = $(SRC_DIR)/arith.h $(SRC_DIR)/file.h $(SRC_DIR)/engine.h $(SRC_DIR)/mersenne.h
+
+EXEC_CPU = $(BIN_DIR)/marin_cpu
+EXEC_GPU = $(BIN_DIR)/marin
+
+build: $(EXEC_CPU) $(EXEC_GPU)
+
+marinc.o: $(SRC_DIR)/marin.cpp $(DEPS)
+	$(CC) $(CFLAGS) $(FLAGS_CPU) -c $< -o $@
+
+maring.o: $(SRC_DIR)/marin.cpp $(DEPS) $(SRC_DIR)/ocl.h
+	$(CC) $(CFLAGS) $(FLAGS_GPU) $(OCL_INC) -c $< -o $@
+
+cpu.o: $(SRC_DIR)/cpu.cpp $(DEPS) $(SRC_DIR)/engine_cpu.h
+	$(CC) $(CFLAGS) $(FLAGS_CPU) -c $< -o $@
+
+gpu.o: $(SRC_DIR)/gpu.cpp $(DEPS) $(SRC_DIR)/engine_gpu.h $(SRC_DIR)/ocl.h
+	$(CC) $(CFLAGS) $(FLAGS_GPU) $(OCL_INC) -c $< -o $@
+
+$(EXEC_CPU): $(OBJS_CPU)
+	$(CC) $(FLAGS_CPU) -static $^ -lgmp -o $@
+	rm $(OBJS_CPU)
+
+$(EXEC_GPU): $(OBJS_GPU)
+	$(CC) $(FLAGS_GPU) -static-libgcc -static-libstdc++ $^ -lgmp $(OCL_LIB) -o $@
+	rm $(OBJS_GPU)
