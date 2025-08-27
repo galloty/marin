@@ -35,8 +35,6 @@ gpu.o: $(SRC_DIR)/gpu.cpp $(DEPS) $(SRC_DIR)/engine_gpu.h $(SRC_DIR)/ocl.h
 
 $(EXEC_CPU): $(OBJS_CPU)
 	$(CC) $(FLAGS_CPU) -static $^ -lgmp -o $@
-	rm $(OBJS_CPU)
 
 $(EXEC_GPU): $(OBJS_GPU)
 	$(CC) $(FLAGS_GPU) -static-libgcc -static-libstdc++ $^ -lgmp $(OCL_LIB) -o $@
-	rm $(OBJS_GPU)
