@@ -383,13 +383,13 @@ public:
 class engine_gpu : public engine
 {
 private:
-	const size_t _reg_count = 3;		// 3 registers
+	const size_t _reg_count;
 	gpu * _gpu;
 	std::vector<uint64> _weight;
 	std::vector<uint8> _digit_width;
 
 public:
-	engine_gpu(const uint32_t q, const size_t device, const bool verbose) : engine(q)
+	engine_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose) : engine(q), _reg_count(reg_count)
 	{
 		const size_t n = get_size();
 

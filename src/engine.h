@@ -178,7 +178,7 @@ public:
 
 	// Interface
 
-	enum class Reg : size_t { R0 = 0, R1 = 1, R2 = 2 };
+	typedef size_t Reg;
 
 	virtual void set(const Reg dst, const size_t a) const = 0;
 	virtual void get(uint64 * const d, const Reg src) const = 0;
@@ -194,7 +194,7 @@ public:
 	virtual bool set_checkpoint(const std::vector<char> & data) const = 0;
 
 	static engine * create_cpu(const uint32_t q);
-	static engine * create_gpu(const uint32_t q, const size_t device, const bool verbose);
+	static engine * create_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose);
 };
 
 class engine_info : public engine

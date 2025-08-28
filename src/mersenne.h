@@ -27,6 +27,7 @@ private:
 	volatile bool _quit = false;
 	uint32_t _display_i;
 	std::string _ckpt_file;
+	const size_t R0 = 0, R1 = 1, R2 = 2;
 
 private:
 	struct deleter { void operator()(const Mersenne * const p) { delete p; } };
@@ -162,11 +163,9 @@ public:
 
 	bool check(const uint32_t p, const size_t device, const bool verbose = true, const bool test_GL = false)
 	{
-		using Reg = engine::Reg;
-
 		engine * const eng =
 #if defined(GPU)
-			engine::create_gpu(p, device, verbose);
+			engine::create_gpu(p, 3, device, verbose);	// 3 registers
 #else
 			engine::create_cpu(p);
 			(void)device;
@@ -179,8 +178,8 @@ public:
 		if (!found)
 		{
 			ri = 0; restored_time = 0;
-			eng->set(Reg::R0, 1);	// result = 1
-			eng->set(Reg::R1, 1);	// d(t) = 1
+			eng->set(R0, 1);	// result = 1
+			eng->set(R1, 1);	// d(t) = 1
 		}
 		else
 		{
@@ -220,30 +219,30 @@ public:
 				}
 			}
 
-			eng->square_mul(Reg::R0, (j != 0) ? 3 : 1);
+			eng->square_mul(R0, (j != 0) ? 3 : 1);
 			if ((j == 0) && test_GL) eng->error();	// test Gerbicz-Li
 
 			if ((j % B_GL == 0) && (j != 0))
 			{
-				eng->set_multiplicand(Reg::R2, Reg::R0);
-				eng->mul(Reg::R1, Reg::R2);	// d(t + 1) = d(t) * result
+				eng->set_multiplicand(R2, R0);
+				eng->mul(R1, R2);	// d(t + 1) = d(t) * result
 			}
 		}
 
 		// Probable prime?
 		std::vector<uint64> d(eng->get_size());
-		eng->get(d.data(), Reg::R0);
+		eng->get(d.data(), R0);
 		uint64_t res64 = 0; const bool is_prp = eng->is_one(d, res64);
 		d.clear();
 
 		// d(t + 1) = d(t) * result
-		eng->set_multiplicand(Reg::R2, Reg::R1);
-		eng->mul(Reg::R0, Reg::R2);
+		eng->set_multiplicand(R2, R1);
+		eng->mul(R0, R2);
 
 		// d(t)^{2^B}
 		for (uint32_t i = 0; i < B_GL; ++i)
 		{
-			eng->square_mul(Reg::R1);
+			eng->square_mul(R1);
 			if (_quit) { delete eng; return false; }
 		}
 
@@ -257,23 +256,23 @@ public:
 		mpz_clear(t);
 
 		// 3^res
-		eng->set(Reg::R2, 1);
+		eng->set(R2, 1);
 		for (uint32_t i = uint32_t(mpz_sizeinbase(res, 2)); i > 0; --i)
 		{
-			eng->square_mul(Reg::R2, (mpz_tstbit(res, i - 1) != 0) ? 3 : 1);
+			eng->square_mul(R2, (mpz_tstbit(res, i - 1) != 0) ? 3 : 1);
 			if (_quit) { delete eng; return false; }
 		}
 
 		mpz_clear(res);
 
 		// d(t)^{2^B} * 3^res
-		eng->set_multiplicand(Reg::R2, Reg::R2);
-		eng->mul(Reg::R1, Reg::R2);
+		eng->set_multiplicand(R2, R2);
+		eng->mul(R1, R2);
 
 		if (verbose) clearline();
 
 		// d(t + 1) = d(t)^{2^B} * 3^res?
-		if (!eng->is_equal(Reg::R0, Reg::R1)) throw std::runtime_error("Gerbicz-Li error checking failed!");
+		if (!eng->is_equal(R0, R1)) throw std::runtime_error("Gerbicz-Li error checking failed!");
 
 		if (verbose)
 		{
@@ -294,18 +293,16 @@ public:
 
 	bool valid(const uint32_t p, const size_t device)
 	{
-		using Reg = engine::Reg;
-
 		engine * const eng =
 #if defined(GPU)
-			engine::create_gpu(p, device, true);
+			engine::create_gpu(p, 3, device, true);	// 3 registers
 #else
 			engine::create_cpu(p);
 			(void)device;
 #endif
 
-		eng->set(Reg::R0, 1);	// result = 1
-		eng->set(Reg::R1, 1);	// d(t) = 1
+		eng->set(R0, 1);	// result = 1
+		eng->set(R1, 1);	// d(t) = 1
 
 		// Gerbicz-Li error checking
 		const uint32_t B_GL = 7;
@@ -317,43 +314,43 @@ public:
 			if (_quit) { delete eng; return false; }
 
 			const uint32_t b_j = (exponent >> j) & 1;
-			eng->square_mul(Reg::R0, (b_j != 0) ? 3 : 1);
+			eng->square_mul(R0, (b_j != 0) ? 3 : 1);
 
 			if ((j % B_GL == 0) && (j != 0))
 			{
-				eng->set_multiplicand(Reg::R2, Reg::R0);
-				eng->mul(Reg::R1, Reg::R2);	// d(t + 1) = d(t) * result
+				eng->set_multiplicand(R2, R0);
+				eng->mul(R1, R2);	// d(t + 1) = d(t) * result
 			}
 		}
 
 		// d(t + 1) = d(t) * result
-		eng->set_multiplicand(Reg::R2, Reg::R1);
-		eng->mul(Reg::R0, Reg::R2);
+		eng->set_multiplicand(R2, R1);
+		eng->mul(R0, R2);
 
 		// d(t)^{2^B}
 		for (uint32_t i = 0; i < B_GL; ++i)
 		{
-			eng->square_mul(Reg::R1);
+			eng->square_mul(R1);
 			if (_quit) { delete eng; return false; }
 		}
 
 		const uint32_t res = 174;
 
 		// 3^res
-		eng->set(Reg::R2, 1);
+		eng->set(R2, 1);
 		for (uint32_t i = 8; i > 0; --i)
 		{
 			const uint32_t b = (res >> (i - 1)) & 1;
-			eng->square_mul(Reg::R2, (b != 0) ? 3 : 1);
+			eng->square_mul(R2, (b != 0) ? 3 : 1);
 			if (_quit) { delete eng; return false; }
 		}
 
 		// d(t)^{2^B} * 3^res
-		eng->set_multiplicand(Reg::R2, Reg::R2);
-		eng->mul(Reg::R1, Reg::R2);
+		eng->set_multiplicand(R2, R2);
+		eng->mul(R1, R2);
 
 		// d(t + 1) = d(t)^{2^B} * 3^res?
-		if (!eng->is_equal(Reg::R0, Reg::R1)) throw std::runtime_error("Gerbicz-Li error checking failed!");
+		if (!eng->is_equal(R0, R1)) throw std::runtime_error("Gerbicz-Li error checking failed!");
 
 		delete eng;
 		return true;
