@@ -11,7 +11,6 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include <vector>
 
 #include "arith.h"
-#include "file.h"
 
 class engine
 {
@@ -190,8 +189,9 @@ public:
 	virtual void mul(const Reg dst, const Reg src) const = 0;
 	virtual void error() const = 0;
 
-	virtual bool read_checkpoint(File & file) const = 0;
-	virtual bool save_checkpoint(File & file) const = 0;
+	virtual size_t get_checkpoint_size() const = 0;
+	virtual bool get_checkpoint(std::vector<char> & data) const = 0;
+	virtual bool set_checkpoint(const std::vector<char> & data) const = 0;
 
 	static engine * create_cpu(const uint32_t q);
 	static engine * create_gpu(const uint32_t q, const size_t device, const bool verbose);
@@ -211,6 +211,7 @@ public:
 	void set_multiplicand(const Reg, const Reg) const override {}
 	void mul(const Reg, const Reg) const override {}
 	void error() const override {}
-	bool read_checkpoint(File &) const override { return false; }
-	bool save_checkpoint(File &) const override { return false; }
+	size_t get_checkpoint_size() const override { return 0; }
+	bool get_checkpoint(std::vector<char> &) const override { return false; }
+	bool set_checkpoint(const std::vector<char> &) const override { return false; }
 };

@@ -8,7 +8,6 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #pragma once
 
 #include "engine.h"
-#include "arith.h"
 #include "ocl.h"
 
 #include "ocl/kernel.h"
@@ -740,21 +739,19 @@ public:
 		_gpu->write_reg(x.data(), 0);
 	}
 
-	bool read_checkpoint(File & file) const override
+	size_t get_checkpoint_size() const override { return _reg_count * get_size() * sizeof(uint64); }
+
+	bool get_checkpoint(std::vector<char> & data) const override
 	{
-		const size_t n = get_size();
-		std::vector<uint64> x(_reg_count * n);
-		if (!file.read(reinterpret_cast<char *>(x.data()), _reg_count * n * sizeof(uint64))) return false;
-		_gpu->write_regs(x.data());
+		if (data.size() != get_checkpoint_size()) return false;
+		_gpu->read_regs(reinterpret_cast<uint64 *>(data.data()));
 		return true;
 	}
 
-	bool save_checkpoint(File & file) const override
+	bool set_checkpoint(const std::vector<char> & data) const override
 	{
-		const size_t n = get_size();
-		std::vector<uint64> x(_reg_count * n);
-		_gpu->read_regs(x.data());
-		if (!file.write(reinterpret_cast<const char *>(x.data()), _reg_count * n * sizeof(uint64))) return false;
+		if (data.size() != get_checkpoint_size()) return false;
+		_gpu->write_regs(reinterpret_cast<const uint64 *>(data.data()));
 		return true;
 	}
 };

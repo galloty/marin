@@ -8,7 +8,8 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #pragma once
 
 #include "engine.h"
-#include "arith.h"
+
+#include <cstring>
 
 class engine_cpu : public engine
 {
@@ -519,17 +520,21 @@ public:
 		x[get_size() / 2] += 1;
 	}
 
-	bool read_checkpoint(File & file) const override
+	size_t get_checkpoint_size() const override { return 3 * get_size() * sizeof(uint64); }
+
+	bool get_checkpoint(std::vector<char> & data) const override
 	{
-		const size_t n = get_size();
-		if (!file.read(reinterpret_cast<char *>(_reg), 3 * n * sizeof(uint64))) return false;
+		const size_t size = get_checkpoint_size();
+		if (data.size() != size) return false;
+		std::memcpy(data.data(), _reg, size);
 		return true;
 	}
 
-	bool save_checkpoint(File & file) const override
+	bool set_checkpoint(const std::vector<char> & data) const override
 	{
-		const size_t n = get_size();
-		if (!file.write(reinterpret_cast<const char *>(_reg), 3 * n * sizeof(uint64))) return false;
+		const size_t size = get_checkpoint_size();
+		if (data.size() != size) return false;
+		std::memcpy(_reg, data.data(), size);
 		return true;
 	}
 };

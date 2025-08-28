@@ -19,6 +19,7 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include <gmp.h>
 
 #include "engine.h"
+#include "file.h"
 
 class Mersenne
 {
@@ -82,7 +83,10 @@ private:
 		if (rp != p) return -2;
 		if (!file.read(reinterpret_cast<char *>(&i), sizeof(i))) return -2;
 		if (!file.read(reinterpret_cast<char *>(&elapsed_time), sizeof(elapsed_time))) return -2;
-		if (!eng->read_checkpoint(file)) return -2;
+		const size_t checkpoint_size = eng->get_checkpoint_size();
+		std::vector<char> data(checkpoint_size);
+		if (!file.read(data.data(), checkpoint_size)) return -2;
+		if (!eng->set_checkpoint(data)) return -2;
 		if (!file.check_crc32()) return -2;
 		return 0;
 	}
@@ -121,7 +125,10 @@ private:
 			if (!file.write(reinterpret_cast<const char *>(&p), sizeof(p))) return;
 			if (!file.write(reinterpret_cast<const char *>(&i), sizeof(i))) return;
 			if (!file.write(reinterpret_cast<const char *>(&elapsed_time), sizeof(elapsed_time))) return;
-			if (!eng->save_checkpoint(file)) return;
+			const size_t checkpoint_size = eng->get_checkpoint_size();
+			std::vector<char> data(checkpoint_size);
+			if (!eng->get_checkpoint(data)) return;
+			if (!file.write(data.data(), checkpoint_size)) return;
 			file.write_crc32();
 		}
 
