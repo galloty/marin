@@ -507,7 +507,7 @@ public:
 
 	enum class Reg : uint32_t { R0 = 0, R1 = 1, R2 = 2 };
 
-	void set(const Reg dst, const size_t a)
+	void set(const Reg dst, const uint64_t a)
 	{
 		const size_t n = _n;
 		Zp * const x = &_reg.data()[uint32_t(dst) * n];

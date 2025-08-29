@@ -291,6 +291,53 @@ public:
 		return true;
 	}
 
+	// Lucas–Lehmer primality test
+	bool checkLL(const uint32_t p, const size_t device, const bool verbose = true)
+	{
+		engine * const eng =
+#if defined(GPU)
+			engine::create_gpu(p, 1, device, verbose);	// 1 register
+#else
+			engine::create_cpu(p);
+			(void)device;
+#endif
+		if (verbose) std::cout << "Testing 2^" << p << " - 1, " << eng->get_size() << " 64-bit words..." << std::endl;
+
+		const auto start_clock = std::chrono::high_resolution_clock::now();
+
+		eng->set(R0, 4);
+
+		for (uint32_t i = 0; i < p - 2; ++i)
+		{
+			if (_quit) { delete eng; return false; }
+
+			eng->square_mul(R0);
+			eng->sub(R0, 2);
+		}
+
+		// Prime?
+		std::vector<uint64> d(eng->get_size());
+		eng->get(d.data(), R0);
+		// Output is modulo 2^p then 0 (mod p) is 0 or 2^p - 1.
+		const bool is_prime = (eng->is_zero(d) || eng->is_Mp(d));
+		d.clear();
+
+		if (verbose)
+		{
+			clearline();
+			const double elapsed_time = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start_clock).count();
+			std::cout << "2^" << p << " - 1 is " << (is_prime ? "prime" : "composite")
+				<< ", time = " << format_time(elapsed_time) << "." << std::endl << std::endl;
+		}
+		else
+		{
+			if (is_prime) std::cout << "2^" << p << " - 1" << " (" << eng->get_size() << ")" << std::endl;
+		}
+
+		delete eng;
+		return true;
+	}
+
 	bool valid(const uint32_t p, const size_t device)
 	{
 		engine * const eng =
@@ -396,6 +443,7 @@ public:
 		for (size_t i = 0; i < sizeof(prm) / sizeof(uint32_t); ++i)
 		{
 			if (!check(prm[i], device)) return;
+			// if (!checkLL(prm[i], device)) return;
 		}
 #else
 		// 3, 5, 7, 13, 17, 19, 31, 61, 89, 107, 127, 521, 607, 1279, 2203, 2281, 3217, 4253, 4423, 9689, 9941, 11213, 19937, 21701, 23209,
@@ -409,6 +457,7 @@ public:
 			for (uint32_t d = 3; p / d >= d; d += 2) if (p % d == 0) { isprime = false; break; }
 			if (!isprime) continue;
 			if (!check(p, device, false, p == 11239)) return;
+			// if (!checkLL(p, device, false)) return;
 		}
 #endif
 	}
