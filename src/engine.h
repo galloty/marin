@@ -176,6 +176,14 @@ public:
 		return true;
 	}
 
+	bool is_nine(const std::vector<uint64> & d) const
+	{
+		const size_t n = get_size();
+		const uint64 * const x = d.data();
+		if (uint32(x[0]) != 9) return false;
+		for (size_t k = 1; k < n; ++k) if (uint32(x[k]) != 0) return false;
+		return true;
+	}
 	// Interface
 
 	typedef size_t Reg;
