@@ -176,6 +176,26 @@ public:
 		return true;
 	}
 
+	bool is_nine(const std::vector<uint64> & d, uint64_t & res64) const
+	{
+		const size_t n = get_size();
+		const uint64 * const x = d.data();
+
+		uint64_t r64 = 0; uint8 s = 0;
+		for (size_t k = 0; k < n; ++k)
+		{
+			const uint64_t x_k = x[k], u = uint32(x_k);
+			const uint8 width = uint8(x_k >> 32);
+			r64 += u << s;
+			s += width;
+			if (s >= 64) break;
+		}
+		res64 = r64;
+
+		if (uint32(x[0]) != 9) return false;
+		for (size_t k = 1; k < n; ++k) if (uint32(x[k]) != 0) return false;
+		return true;
+	}
 	// Interface
 
 	typedef size_t Reg;
