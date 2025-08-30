@@ -4,9 +4,9 @@ Mersenne Prime search program
 ## About
 
 **marin** is an [OpenCL™](https://www.khronos.org/opencl/) application.  
-It determines whether a [Mersenne number](https://en.wikipedia.org/wiki/Mersenne_prime) 2<sup>*p*</sup> - 1 is a probable prime using [Fermat primality test](https://en.wikipedia.org/wiki/Fermat_primality_test) (*a* = 3).  
+It determines whether a [Mersenne number](https://en.wikipedia.org/wiki/Mersenne_prime) 2<sup>*p*</sup> - 1 is a probable prime using [Fermat primality test](https://en.wikipedia.org/wiki/Fermat_primality_test) (*a* = 3) or prime using [Lucas-Lehmer primality test](https://en.wikipedia.org/wiki/Lucas%E2%80%93Lehmer_primality_test).  
 
-It implements an [Efficient Modular Exponentiation Proof Scheme](https://arxiv.org/abs/2209.15623). The test is validated with [Gerbicz - Li](https://www.mersenneforum.org/showthread.php?t=22510) error checking.  
+It implements an [Efficient Modular Exponentiation Proof Scheme](https://arxiv.org/abs/2209.15623). The prp test is validated with [Gerbicz - Li](https://www.mersenneforum.org/showthread.php?t=22510) error checking.  
 
 Efficient multiplication modulo a Mersenne number is evaluated using an [Irrational Base Discrete Weighted Transform](https://www.ams.org/journals/mcom/1994-62-205/S0025-5718-1994-1185244-1/).  
 A Number Theoretic Transform is implemented, over the field Z/*p*Z, *p* = 2<sup>64</sup>&nbsp;-&nbsp;2<sup>32</sup>&nbsp;+&nbsp;1 (see: Nick Craig-Wood, [IOCCC 2012 Entry](https://github.com/ncw/ioccc2012/)).  
@@ -24,7 +24,7 @@ A checkpoint file is created if the application is interrupted and *marin* resum
 
 ## Build
 
-The compiler must support 128-bit literal values. 64-bit versions of GCC and Clang support the built-in __uint128_t type.  
+The compiler must support the built-in __uint128_t type (GCC and Clang) or the _umul128 instruction (Visual Studio).  
 The code has been validated with GCC 15.2 on Windows ([MSYS2](https://www.msys2.org/)) and Linux.  
 
 ## TODO

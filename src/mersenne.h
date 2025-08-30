@@ -65,9 +65,9 @@ private:
 		return count;
 	}
 
-	void set_checkpoint_filename(const uint32_t p)
+	void set_checkpoint_filename(const uint32_t p, const bool isLL = false)
 	{
-		std::ostringstream ss; ss << "m_" << p << ".ckpt";
+		std::ostringstream ss; ss << "m_" << p << (isLL ? "LL" : "") << ".ckpt";
 		_ckpt_file = ss.str();
 	}
 
@@ -303,13 +303,47 @@ public:
 #endif
 		if (verbose) std::cout << "Testing 2^" << p << " - 1, " << eng->get_size() << " 64-bit words..." << std::endl;
 
-		const auto start_clock = std::chrono::high_resolution_clock::now();
-
-		eng->set(R0, 4);
-
-		for (uint32_t i = 0; i < p - 2; ++i)
+		set_checkpoint_filename(p, true);
+		uint32_t ri = 0; double restored_time = 0;
+		const bool found = read_checkpoint(eng, p, ri, restored_time);
+		if (!found)
 		{
-			if (_quit) { delete eng; return false; }
+			ri = 0; restored_time = 0;
+			eng->set(R0, 4);
+		}
+		else
+		{
+			std::cout << "Resuming from a checkpoint." << std::endl;
+		}
+
+		const auto start_clock = std::chrono::high_resolution_clock::now();
+		uint32_t display_count = 2, display_count_reset = display_count;
+		auto display_clock = start_clock;
+		_display_i = ri;
+
+		for (uint32_t i = ri; i < p - 2; ++i)
+		{
+			if (_quit)
+			{
+				const auto now_clock = std::chrono::high_resolution_clock::now();
+				const double elapsed_time = std::chrono::duration<double>(now_clock - start_clock).count() + restored_time;
+				save_checkpoint(eng, p, i, elapsed_time);
+				delete eng;
+				return false;
+			}
+
+			if (verbose && (--display_count == 0))
+			{
+				const auto now_clock = std::chrono::high_resolution_clock::now();
+				const double display_time = std::chrono::duration<double>(now_clock - display_clock).count();
+				if (display_time < 1) display_count = display_count_reset;
+				else
+				{
+					const double elapsed_time = std::chrono::duration<double>(now_clock - start_clock).count() + restored_time;
+					display_clock = now_clock;
+					display_count_reset = display_count = display_progress(i, i / double(p), display_time, elapsed_time);
+				}
+			}
 
 			eng->square_mul(R0);
 			eng->sub(R0, 2);
@@ -325,7 +359,7 @@ public:
 		if (verbose)
 		{
 			clearline();
-			const double elapsed_time = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start_clock).count();
+			const double elapsed_time = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start_clock).count() + restored_time;
 			std::cout << "2^" << p << " - 1 is " << (is_prime ? "prime" : "composite")
 				<< ", time = " << format_time(elapsed_time) << "." << std::endl << std::endl;
 		}

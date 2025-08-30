@@ -103,7 +103,7 @@ private:
 #endif
 
 		std::ostringstream ss;
-		ss << "marin" << ext << " version 25.08.1 (" << sys_ver << comp_ver.str() << ")" << std::endl;
+		ss << "marin" << ext << " version 25.08.2 (" << sys_ver << comp_ver.str() << ")" << std::endl;
 		ss << "Copyright (c) 2025, Yves Gallot" << std::endl;
 		ss << "marin is free source code, under the MIT license." << std::endl;
 		ss << std::endl << "Command line: '";
@@ -129,6 +129,7 @@ private:
 		std::ostringstream ss;
 		ss << "Usage: marin" << ext << " [options]  options may be specified in any order" << std::endl;
 		ss << "  -p <p>    exponent of the Mersenne number 2^p - 1 (3 <= p <= 1509949421)" << std::endl;
+		ss << "  -LL       perform Lucas-Lehmer primality test" << std::endl;
 #if defined(GPU)
 		ss << "  -d <n>    set the device number (default 0)" << std::endl;
 		ss << "  -h        validate hardware (quick Gerbicz-Li error checking for each size)" << std::endl;
@@ -145,6 +146,7 @@ public:
 		std::cout << header(args) << std::endl;
 
 		uint32_t p = 0;
+		bool isLL = false;
 		size_t device = 0;
 #if defined(GPU)
 		bool valid = false;
@@ -162,6 +164,10 @@ public:
 				for (uint32_t d = 3; p / d >= d; d += 2) if (p % d == 0) { isprime = false; break; }
 				if (!isprime) throw std::runtime_error("p must be an odd prime.");
 				if ((p < 3) || (p > 1509949421)) throw std::runtime_error("p is out of range.");
+			}
+			if (arg.substr(0, 3) == "-LL")
+			{
+				isLL = true;
 			}
 #if defined(GPU)
 			if (arg.substr(0, 2) == "-d")
@@ -198,7 +204,8 @@ public:
 			return;
 		}
 
-		mersenne.check(p, device);
+		if (isLL) mersenne.checkLL(p, device);
+		else mersenne.check(p, device);
 	}
 };
 
