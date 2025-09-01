@@ -537,7 +537,7 @@ public:
 		const size_t n = _n;
 		std::vector<uint64> x(n);
 
-		x[0] = a;	// digit_weight[0] = 1
+		x[0] = a;	// weight[0] = 1
 		for (size_t k = 1; k < n; ++k) x[k] = 0;
 
 		// radix-2
@@ -549,8 +549,8 @@ public:
 	void get(uint64 * const d, const Reg src) const override
 	{
 		const size_t n = _n;
-		const uint64 * const wi = &_weight[2 * n];
-		const uint8 * const width = &_digit_width[0];
+		const uint64 * const wi = &_weight.data()[2 * n];
+		const uint8 * const width = &_digit_width.data()[0];
 
 		_gpu->read_reg(d, size_t(src));
 

@@ -18,11 +18,11 @@ private:
 	const size_t _n;
 	const bool _even;
 	const int _ln_max;
-	uint64 * _reg;	// the weighted representation of R0, R1, ...
-	uint64 * _root;
-	uint64 * _weight;
-	uint8 * _digit_width;
-	uint64 * _carry;
+	std::vector<uint64> _reg;	// the weighted representation of R0, R1, ...
+	std::vector<uint64> _root;
+	std::vector<uint64> _weight;
+	std::vector<uint8> _digit_width;
+	std::vector<uint64> _carry;
 
 private:
 	// Radix-2
@@ -110,8 +110,8 @@ private:
 	void forward4(uint64 * const x) const
 	{
 		const size_t n = _n, n_4 = n / 4;
-		const uint64 * const r2 = &_root[0];
-		const uint64 * const r4 = &_root[n / 2];
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r4 = &_root.data()[n / 2];
 
 		for (int lm = _ln_max; lm >= 2; lm -= 2)
 		{
@@ -128,8 +128,8 @@ private:
 	void backward4(uint64 * const x) const
 	{
 		const size_t n = _n, n_4 = n / 4;
-		const uint64 * const r2i = &_root[n];
-		const uint64 * const r4i = &_root[n + n / 2];
+		const uint64 * const r2i = &_root.data()[n];
+		const uint64 * const r4i = &_root.data()[n + n / 2];
 
 		for (int lm = 2, lm_max = _ln_max; lm <= lm_max; lm += 2)
 		{
@@ -146,7 +146,7 @@ private:
 	void forward_mul4(uint64 * const x) const
 	{
 		const size_t n_4 = _n / 4;
-		const uint64 * const r2 = &_root[0];
+		const uint64 * const r2 = &_root.data()[0];
 
 		for (size_t id = 0; id < n_4; ++id)
 		{
@@ -159,8 +159,8 @@ private:
 	void sqr4(uint64 * const x) const
 	{
 		const size_t n = _n, n_4 = n / 4;
-		const uint64 * const r2 = &_root[0];
-		const uint64 * const r2i = &_root[n];
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r2i = &_root.data()[n];
 
 		for (size_t id = 0; id < n_4; ++id)
 		{
@@ -179,8 +179,8 @@ private:
 	void mul4(uint64 * const x, const uint64 * const y) const
 	{
 		const size_t n = _n, n_4 = n / 4;
-		const uint64 * const r2 = &_root[0];
-		const uint64 * const r2i = &_root[n];
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r2i = &_root.data()[n];
 
 		for (size_t id = 0; id < n_4; ++id)
 		{
@@ -200,8 +200,8 @@ private:
 	void forward5(uint64 * const x) const
 	{
 		const size_t n = _n, n_4 = n / 4, n_5 = n / 5;
-		const uint64 * const r2 = &_root[0];
-		const uint64 * const r4 = &_root[n_5 / 2];
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r4 = &_root.data()[n_5 / 2];
 
 		for (int lm = _ln_max; lm >= 1; lm -= 2)
 		{
@@ -219,8 +219,8 @@ private:
 	void backward5(uint64 * const x) const
 	{
 		const size_t n = _n, n_4 = n / 4, n_5 = n / 5;
-		const uint64 * const r2i = &_root[n];
-		const uint64 * const r4i = &_root[n + n_5 / 2];
+		const uint64 * const r2i = &_root.data()[n];
+		const uint64 * const r4i = &_root.data()[n + n_5 / 2];
 
 		for (int lm = 1, lm_max = _ln_max; lm <= lm_max; lm += 2)
 		{
@@ -238,8 +238,8 @@ private:
 	void forward_mul10(uint64 * const x) const
 	{
 		const size_t n = _n, n_5 = n / 5, n_10 = n_5 / 2;
-		const uint64 * const r2 = &_root[0];
-		const uint64 * const r5 = &_root[n_5];
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r5 = &_root.data()[n_5];
 
 		for (size_t id = 0; id < n_10; ++id)
 		{
@@ -259,10 +259,10 @@ private:
 	void sqr10(uint64 * const x) const
 	{
 		const size_t n = _n, n_5 = n / 5, n_10 = n_5 / 2;
-		const uint64 * const r2 = &_root[0];
-		const uint64 * const r2i = &_root[n];
-		const uint64 * const r5 = &_root[n_5];
-		const uint64 * const r5i = &_root[n + n_5];
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r2i = &_root.data()[n];
+		const uint64 * const r5 = &_root.data()[n_5];
+		const uint64 * const r5i = &_root.data()[n + n_5];
 
 		for (size_t id = 0; id < n_10; ++id)
 		{
@@ -287,10 +287,10 @@ private:
 	void mul10(uint64 * const x, const uint64 * const y) const
 	{
 		const size_t n = _n, n_5 = n / 5, n_10 = n_5 / 2;
-		const uint64 * const r2 = &_root[0];
-		const uint64 * const r2i = &_root[n];
-		const uint64 * const r5 = &_root[n_5];
-		const uint64 * const r5i = &_root[n + n_5];
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r2i = &_root.data()[n];
+		const uint64 * const r5 = &_root.data()[n_5];
+		const uint64 * const r5i = &_root.data()[n + n_5];
 
 		for (size_t id = 0; id < n_10; ++id)
 		{
@@ -315,10 +315,10 @@ private:
 	void carry_weight_mul(uint64 * const x, const uint32 a = 1) const
 	{
 		const size_t n = _n, n_4 = n / 4;
-		const uint64 * const w = &_weight[0];
-		const uint64 * const wi_n = &_weight[n];
-		const uint8 * const width = _digit_width;
-		uint64 * const carry = _carry;
+		const uint64 * const w = &_weight.data()[0];
+		const uint64 * const wi_n = &_weight.data()[n];
+		const uint8 * const width = _digit_width.data();
+		uint64 * const carry = const_cast<uint64 *>(_carry.data());
 
 		for (size_t id = 0; id < n_4; ++id)
 		{
@@ -349,10 +349,10 @@ private:
 	void carry_weight_mul2(uint64 * const x, const uint32 a = 1) const
 	{
 		const size_t n = _n, n_8 = n / 8, n_2 = n / 2;
-		const uint64 * const w = &_weight[0];
-		const uint64 * const wi_n = &_weight[n];
-		const uint8 * const width = _digit_width;
-		uint64 * const carry = _carry;
+		const uint64 * const w = &_weight.data()[0];
+		const uint64 * const wi_n = &_weight.data()[n];
+		const uint8 * const width = _digit_width.data();
+		uint64 * const carry = const_cast<uint64 *>(_carry.data());
 
 		for (size_t id = 0; id < n_8; ++id)
 		{
@@ -392,33 +392,26 @@ public:
 	{
 		const size_t n = _n;
 
-		_reg = new uint64[3 * n];	// allocate 3 registers
-		_root = new uint64[2 * n];
-		_weight = new uint64[3 * n];
-		_digit_width = new uint8[n];
-		_carry = new uint64[n / 4];
+		_reg.resize(3 * n);	// allocate 3 registers
+		_root.resize(2 * n);
+		_weight.resize(3 * n);
+		_digit_width.resize(n);
+		_carry.resize(n / 4);
 
-		ibdwt::roots(n, _root);
-		ibdwt::weights_widths(n, q, _weight, _digit_width);
+		ibdwt::roots(n, _root.data());
+		ibdwt::weights_widths(n, q, _weight.data(), _digit_width.data());
 	}
 
-	virtual ~engine_cpu()
-	{
-		delete[] _reg;
-		delete[] _root;
-		delete[] _weight;
-		delete[] _digit_width;
-		delete[] _carry;
-	}
+	virtual ~engine_cpu() {}
 
 	size_t get_size() const override { return _n; }
 
 	void set(const Reg dst, const uint64 a) const override
 	{
 		const size_t n = _n;
-		uint64 * const x = &_reg[size_t(dst) * n];
+		uint64 * const x = const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]);
 
-		x[0] = a;	// digit_weight[0] = 1
+		x[0] = a;	// weight[0] = 1
 		for (size_t k = 1; k < n; ++k) x[k] = 0;
 
 		// radix-2
@@ -428,9 +421,9 @@ public:
 	void get(uint64 * const d, const Reg src) const override
 	{
 		const size_t n = _n;
-		const uint64 * const x = &_reg[size_t(src) * n];
-		const uint64 * const wi = &_weight[2 * n];
-		const uint8 * const width = _digit_width;
+		const uint64 * const x = &_reg.data()[size_t(src) * n];
+		const uint64 * const wi = &_weight.data()[2 * n];
+		const uint8 * const width = _digit_width.data();
 
 		for (size_t k = 0; k < n; ++k) d[k] = x[k];
 
@@ -465,8 +458,8 @@ public:
 	void copy(const Reg dst, const Reg src) const override
 	{
 		const size_t n = _n;
-		const uint64 * const x = &_reg[size_t(src) * n];
-		uint64 * const y = &_reg[size_t(dst) * n];
+		const uint64 * const x = &_reg.data()[size_t(src) * n];
+		uint64 * const y = const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]);
 
 		for (size_t k = 0; k < n; ++k) y[k] = x[k];
 	}
@@ -474,8 +467,8 @@ public:
 	bool is_equal(const Reg src1, const Reg src2) const override
 	{
 		const size_t n = _n;
-		const uint64 * const x = &_reg[size_t(src1) * n];
-		const uint64 * const y = &_reg[size_t(src2) * n];
+		const uint64 * const x = &_reg.data()[size_t(src1) * n];
+		const uint64 * const y = &_reg.data()[size_t(src2) * n];
 
 		for (size_t k = 0; k < n; ++k) if (y[k] != x[k]) return false;
 		return true;
@@ -484,7 +477,7 @@ public:
 	void square_mul(const Reg src, const uint32 a = 1) const override
 	{
 		const size_t n = _n;
-		uint64 * const x = &_reg[size_t(src) * n];
+		uint64 * const x = const_cast<uint64 *>(&_reg.data()[size_t(src) * n]);
 
 		if (n % 5 == 0) { forward5(x); sqr10(x); backward5(x); }
 		else { forward4(x); sqr4(x); backward4(x); }
@@ -496,7 +489,7 @@ public:
 		if (src != dst) copy(dst, src);
 
 		const size_t n = _n;
-		uint64 * const y = &_reg[size_t(dst) * n];
+		uint64 * const y = const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]);
 
 		if (n % 5 == 0) { forward5(y); forward_mul10(y); }
 		else { forward4(y); forward_mul4(y);}
@@ -505,8 +498,8 @@ public:
 	void mul(const Reg dst, const Reg src) const override
 	{
 		const size_t n = _n;
-		uint64 * const x = &_reg[size_t(dst) * n];
-		const uint64 * const y = &_reg[size_t(src) * n];
+		uint64 * const x = const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]);
+		const uint64 * const y = &_reg.data()[size_t(src) * n];
 
 		if (n % 5 == 0) { forward5(x); mul10(x, y); backward5(x); }
 		else { forward4(x); mul4(x, y); backward4(x); }
@@ -516,10 +509,10 @@ public:
 	void sub(const Reg src, const uint32 a) const override
 	{
 		const size_t n = _n;
-		uint64 * const x = &_reg[size_t(src) * n];
-		const uint64 * const w = &_weight[0];
-		const uint64 * const wi = &_weight[2 * n];
-		const uint8 * const width = _digit_width;
+		uint64 * const x = const_cast<uint64 *>(&_reg.data()[size_t(src) * n]);
+		const uint64 * const w = &_weight.data()[0];
+		const uint64 * const wi = &_weight.data()[2 * n];
+		const uint8 * const width = _digit_width.data();
 
 		uint32 c = a;
 		while (c != 0)
@@ -563,7 +556,7 @@ public:
 	{
 		const size_t size = get_checkpoint_size();
 		if (data.size() != size) return false;
-		std::memcpy(data.data(), _reg, size);
+		std::memcpy(data.data(), _reg.data(), size);
 		return true;
 	}
 
@@ -571,7 +564,7 @@ public:
 	{
 		const size_t size = get_checkpoint_size();
 		if (data.size() != size) return false;
-		std::memcpy(_reg, data.data(), size);
+		std::memcpy(const_cast<uint64 *>(_reg.data()), data.data(), size);
 		return true;
 	}
 };
