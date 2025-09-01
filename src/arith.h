@@ -40,7 +40,7 @@ INLINE uint64 mod_mul(const uint64 lhs, const uint64 rhs)
 #ifdef _MSC_VER
 	lo = _umul128(lhs, rhs, &hi);
 #else
-	const __uint128_t t = (__uint128_t)lhs * (__uint128_t)rhs;
+	const __uint128_t t = lhs * __uint128_t(rhs);
 	lo = uint64(t); hi = uint64(t >> 64);
 #endif
 	return reduce(lo, hi);
