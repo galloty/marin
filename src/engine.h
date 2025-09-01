@@ -7,7 +7,6 @@ Please give feedback to the authors if improvement is realized. It is distribute
 
 #pragma once
 
-#include <algorithm>
 #include <vector>
 
 #include "arith.h"
@@ -51,6 +50,7 @@ public:
 
 		virtual ~digit() {}
 
+		size_t get_size() const { return _data.size(); }
 		uint32 val(const size_t i) const { return uint32(_data[i]); }
 		uint8 width(const size_t i) const { return uint8(_data[i] >> 32); }
 
