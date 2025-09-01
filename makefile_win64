@@ -13,17 +13,18 @@ FLAGS_GPU = -O2 -DGPU
 OBJS_CPU = marinc.o cpu.o
 OBJS_GPU = maring.o gpu.o
 
-DEPS = $(SRC_DIR)/arith.h $(SRC_DIR)/file.h $(SRC_DIR)/engine.h $(SRC_DIR)/mersenne.h
+DEPS = $(SRC_DIR)/engine.h $(SRC_DIR)/arith.h
+DEPS_MERS = $(SRC_DIR)/mersenne.h $(SRC_DIR)/ibdwt.h $(SRC_DIR)/file.h
 
 EXEC_CPU = $(BIN_DIR)/marin_cpu.exe
 EXEC_GPU = $(BIN_DIR)/marin.exe
 
 build: $(EXEC_CPU) $(EXEC_GPU)
 
-marinc.o: $(SRC_DIR)/marin.cpp $(DEPS)
+marinc.o: $(SRC_DIR)/marin.cpp $(DEPS) $(DEPS_MERS)
 	$(CC) $(CFLAGS) $(FLAGS_CPU) -c $< -o $@
 
-maring.o: $(SRC_DIR)/marin.cpp $(DEPS) $(SRC_DIR)/ocl.h
+maring.o: $(SRC_DIR)/marin.cpp $(DEPS) $(DEPS_MERS) $(SRC_DIR)/ocl.h
 	$(CC) $(CFLAGS) $(FLAGS_GPU) $(OCL_INC) -c $< -o $@
 
 cpu.o: $(SRC_DIR)/cpu.cpp $(DEPS) $(SRC_DIR)/engine_cpu.h

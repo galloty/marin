@@ -8,12 +8,16 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #pragma once
 
 #include "engine.h"
+#include "ibdwt.h"
 
 #include <cstring>
 
 class engine_cpu : public engine
 {
 private:
+	const size_t _n;
+	const bool _even;
+	const int _ln_max;
 	uint64 * _reg;	// the weighted representation of R0, R1, ...
 	uint64 * _root;
 	uint64 * _weight;
@@ -105,12 +109,11 @@ private:
 	// Transform, n = 4^e
 	void forward4(uint64 * const x) const
 	{
-		const size_t n = get_size(), n_4 = n / 4;
+		const size_t n = _n, n_4 = n / 4;
 		const uint64 * const r2 = &_root[0];
 		const uint64 * const r4 = &_root[n / 2];
 
-		const int lm_max = get_ln_max();
-		for (int lm = lm_max; lm >= 2; lm -= 2)
+		for (int lm = _ln_max; lm >= 2; lm -= 2)
 		{
 			const size_t m = size_t(1) << lm;
 			for (size_t id = 0; id < n_4; ++id)
@@ -124,12 +127,11 @@ private:
 	// Inverse transform, n = 4^e
 	void backward4(uint64 * const x) const
 	{
-		const size_t n = get_size(), n_4 = n / 4;
+		const size_t n = _n, n_4 = n / 4;
 		const uint64 * const r2i = &_root[n];
 		const uint64 * const r4i = &_root[n + n / 2];
 
-		const int lm_max = get_ln_max();
-		for (int lm = 2; lm <= lm_max; lm += 2)
+		for (int lm = 2, lm_max = _ln_max; lm <= lm_max; lm += 2)
 		{
 			const size_t m = size_t(1) << lm;
 			for (size_t id = 0; id < n_4; ++id)
@@ -143,7 +145,7 @@ private:
 	// Radix-2
 	void forward_mul4(uint64 * const x) const
 	{
-		const size_t n_4 = get_size() / 4;
+		const size_t n_4 = _n / 4;
 		const uint64 * const r2 = &_root[0];
 
 		for (size_t id = 0; id < n_4; ++id)
@@ -156,7 +158,7 @@ private:
 	// Radix-2, square2x2, inverse radix-2
 	void sqr4(uint64 * const x) const
 	{
-		const size_t n = get_size(), n_4 = n / 4;
+		const size_t n = _n, n_4 = n / 4;
 		const uint64 * const r2 = &_root[0];
 		const uint64 * const r2i = &_root[n];
 
@@ -176,7 +178,7 @@ private:
 	// Radix-2, mul2x2, inverse radix-2
 	void mul4(uint64 * const x, const uint64 * const y) const
 	{
-		const size_t n = get_size(), n_4 = n / 4;
+		const size_t n = _n, n_4 = n / 4;
 		const uint64 * const r2 = &_root[0];
 		const uint64 * const r2i = &_root[n];
 
@@ -197,12 +199,11 @@ private:
 	// Transform, n = 10 * 4^e
 	void forward5(uint64 * const x) const
 	{
-		const size_t n = get_size(), n_4 = n / 4, n_5 = n / 5;
+		const size_t n = _n, n_4 = n / 4, n_5 = n / 5;
 		const uint64 * const r2 = &_root[0];
 		const uint64 * const r4 = &_root[n_5 / 2];
 
-		const int lm_max = get_ln_max();
-		for (int lm = lm_max; lm >= 1; lm -= 2)
+		for (int lm = _ln_max; lm >= 1; lm -= 2)
 		{
 			const size_t m = size_t(1) << lm, m5 = size_t(5) << lm;
 			for (size_t id = 0; id < n_4; ++id)
@@ -217,12 +218,11 @@ private:
 	// Inverse transform, n = 10 * 4^e
 	void backward5(uint64 * const x) const
 	{
-		const size_t n = get_size(), n_4 = n / 4, n_5 = n / 5;
+		const size_t n = _n, n_4 = n / 4, n_5 = n / 5;
 		const uint64 * const r2i = &_root[n];
 		const uint64 * const r4i = &_root[n + n_5 / 2];
 
-		const int lm_max = get_ln_max();
-		for (int lm = 1; lm <= lm_max; lm += 2)
+		for (int lm = 1, lm_max = _ln_max; lm <= lm_max; lm += 2)
 		{
 			const size_t m = size_t(1) << lm, m5 = size_t(5) << lm;
 			for (size_t id = 0; id < n_4; ++id)
@@ -237,7 +237,7 @@ private:
 	// Radix-2, Radix-5
 	void forward_mul10(uint64 * const x) const
 	{
-		const size_t n = get_size(), n_5 = n / 5, n_10 = n_5 / 2;
+		const size_t n = _n, n_5 = n / 5, n_10 = n_5 / 2;
 		const uint64 * const r2 = &_root[0];
 		const uint64 * const r5 = &_root[n_5];
 
@@ -258,7 +258,7 @@ private:
 	// Radix-2, Radix-5, square, inverse radix-5, inverse radix-2
 	void sqr10(uint64 * const x) const
 	{
-		const size_t n = get_size(), n_5 = n / 5, n_10 = n_5 / 2;
+		const size_t n = _n, n_5 = n / 5, n_10 = n_5 / 2;
 		const uint64 * const r2 = &_root[0];
 		const uint64 * const r2i = &_root[n];
 		const uint64 * const r5 = &_root[n_5];
@@ -286,7 +286,7 @@ private:
 	// Radix-2, Radix-5, mul, inverse radix-5, inverse radix-2
 	void mul10(uint64 * const x, const uint64 * const y) const
 	{
-		const size_t n = get_size(), n_5 = n / 5, n_10 = n_5 / 2;
+		const size_t n = _n, n_5 = n / 5, n_10 = n_5 / 2;
 		const uint64 * const r2 = &_root[0];
 		const uint64 * const r2i = &_root[n];
 		const uint64 * const r5 = &_root[n_5];
@@ -314,7 +314,7 @@ private:
 	// Unweight, carry, mul by a, weight
 	void carry_weight_mul(uint64 * const x, const uint32 a = 1) const
 	{
-		const size_t n = get_size(), n_4 = n / 4;
+		const size_t n = _n, n_4 = n / 4;
 		const uint64 * const w = &_weight[0];
 		const uint64 * const wi_n = &_weight[n];
 		const uint8 * const width = _digit_width;
@@ -348,7 +348,7 @@ private:
 	// Inverse radix-2, unweight, carry, mul by a, weight, radix-2
 	void carry_weight_mul2(uint64 * const x, const uint32 a = 1) const
 	{
-		const size_t n = get_size(), n_8 = n / 8, n_2 = n / 2;
+		const size_t n = _n, n_8 = n / 8, n_2 = n / 2;
 		const uint64 * const w = &_weight[0];
 		const uint64 * const wi_n = &_weight[n];
 		const uint8 * const width = _digit_width;
@@ -387,9 +387,10 @@ private:
 	}
 
 public:
-	engine_cpu(const uint32_t q) : engine(q)
+	engine_cpu(const uint32_t q) : engine(), _n(ibdwt::transform_size(q)), _even(ibdwt::is_even(_n)),
+		_ln_max(ilog2_32(uint32_t((_n % 5 == 0) ? _n / 5 : _n)) - (_even ? 2 : 3))
 	{
-		const size_t n = get_size();
+		const size_t n = _n;
 
 		_reg = new uint64[3 * n];	// allocate 3 registers
 		_root = new uint64[2 * n];
@@ -397,8 +398,8 @@ public:
 		_digit_width = new uint8[n];
 		_carry = new uint64[n / 4];
 
-		roots(_root);
-		weights_widths(q, _weight, _digit_width);
+		ibdwt::roots(n, _root);
+		ibdwt::weights_widths(n, q, _weight, _digit_width);
 	}
 
 	virtual ~engine_cpu()
@@ -410,28 +411,30 @@ public:
 		delete[] _carry;
 	}
 
+	size_t get_size() const override { return _n; }
+
 	void set(const Reg dst, const uint64 a) const override
 	{
-		const size_t n = get_size();
+		const size_t n = _n;
 		uint64 * const x = &_reg[size_t(dst) * n];
 
 		x[0] = a;	// digit_weight[0] = 1
 		for (size_t k = 1; k < n; ++k) x[k] = 0;
 
 		// radix-2
-		if (!get_even()) x[n / 2] = x[0];
+		if (!_even) x[n / 2] = x[0];
 	}
 
 	void get(uint64 * const d, const Reg src) const override
 	{
-		const size_t n = get_size();
+		const size_t n = _n;
 		const uint64 * const x = &_reg[size_t(src) * n];
 		const uint64 * const wi = &_weight[2 * n];
 		const uint8 * const width = _digit_width;
 
 		for (size_t k = 0; k < n; ++k) d[k] = x[k];
 
-		if (!get_even())
+		if (!_even)
 		{
 			// inverse radix-2
 			for (size_t k = 0; k < n / 2; ++k)
@@ -461,7 +464,7 @@ public:
 
 	void copy(const Reg dst, const Reg src) const override
 	{
-		const size_t n = get_size();
+		const size_t n = _n;
 		const uint64 * const x = &_reg[size_t(src) * n];
 		uint64 * const y = &_reg[size_t(dst) * n];
 
@@ -470,7 +473,7 @@ public:
 
 	bool is_equal(const Reg src1, const Reg src2) const override
 	{
-		const size_t n = get_size();
+		const size_t n = _n;
 		const uint64 * const x = &_reg[size_t(src1) * n];
 		const uint64 * const y = &_reg[size_t(src2) * n];
 
@@ -480,19 +483,19 @@ public:
 
 	void square_mul(const Reg src, const uint32 a = 1) const override
 	{
-		const size_t n = get_size();
+		const size_t n = _n;
 		uint64 * const x = &_reg[size_t(src) * n];
 
 		if (n % 5 == 0) { forward5(x); sqr10(x); backward5(x); }
 		else { forward4(x); sqr4(x); backward4(x); }
-		if (get_even()) carry_weight_mul(x, a); else carry_weight_mul2(x, a);
+		if (_even) carry_weight_mul(x, a); else carry_weight_mul2(x, a);
 	}
 
 	void set_multiplicand(const Reg dst, const Reg src) const override
 	{
 		if (src != dst) copy(dst, src);
 
-		const size_t n = get_size();
+		const size_t n = _n;
 		uint64 * const y = &_reg[size_t(dst) * n];
 
 		if (n % 5 == 0) { forward5(y); forward_mul10(y); }
@@ -501,18 +504,18 @@ public:
 
 	void mul(const Reg dst, const Reg src) const override
 	{
-		const size_t n = get_size();
+		const size_t n = _n;
 		uint64 * const x = &_reg[size_t(dst) * n];
 		const uint64 * const y = &_reg[size_t(src) * n];
 
 		if (n % 5 == 0) { forward5(x); mul10(x, y); backward5(x); }
 		else { forward4(x); mul4(x, y); backward4(x); }
-		if (get_even()) carry_weight_mul(x); else carry_weight_mul2(x);
+		if (_even) carry_weight_mul(x); else carry_weight_mul2(x);
 	}
 
 	void sub(const Reg src, const uint32 a) const override
 	{
-		const size_t n = get_size();
+		const size_t n = _n;
 		uint64 * const x = &_reg[size_t(src) * n];
 		const uint64 * const w = &_weight[0];
 		const uint64 * const wi = &_weight[2 * n];
@@ -521,7 +524,7 @@ public:
 		uint32 c = a;
 		while (c != 0)
 		{
-			if (get_even())
+			if (_even)
 			{
 				// Unweight, sub with carry, weight
 				for (size_t k = 0; k < n; ++k)
@@ -554,13 +557,7 @@ public:
 		}
 	}
 
-	void error() const override
-	{
-		uint64 * const x = &_reg[0];
-		x[get_size() / 2] += 1;
-	}
-
-	size_t get_checkpoint_size() const override { return 3 * get_size() * sizeof(uint64); }
+	size_t get_checkpoint_size() const override { return 3 * _n * sizeof(uint64); }
 
 	bool get_checkpoint(std::vector<char> & data) const override
 	{

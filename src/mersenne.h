@@ -19,7 +19,31 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include <gmp.h>
 
 #include "engine.h"
+#include "ibdwt.h"
 #include "file.h"
+
+class engine_info : public engine
+{
+private:
+	const size_t _n;
+
+public:
+	engine_info(const uint32_t q) : engine(), _n(ibdwt::transform_size(q)) {}
+	virtual ~engine_info() {}
+
+	size_t get_size() const override { return _n; }
+	void set(const Reg, const uint64) const override {}
+	void get(uint64 *, const Reg) const override  {}
+	void copy(const Reg, const Reg) const override {}
+	bool is_equal(const Reg, const Reg) const override { return false; }
+	void square_mul(const Reg, const uint32) const override {}
+	void set_multiplicand(const Reg, const Reg) const override {}
+	void mul(const Reg, const Reg) const override {}
+	void sub(const Reg, const uint32) const override {}
+	size_t get_checkpoint_size() const override { return 0; }
+	bool get_checkpoint(std::vector<char> &) const override { return false; }
+	bool set_checkpoint(const std::vector<char> &) const override { return false; }
+};
 
 class Mersenne
 {
@@ -220,7 +244,7 @@ public:
 			}
 
 			eng->square_mul(R0, (j != 0) ? 3 : 1);
-			if ((j == 0) && test_GL) eng->error();	// test Gerbicz-Li
+			if ((j == 0) && test_GL) eng->sub(R0, 1);	// test Gerbicz-Li error
 
 			if ((j % B_GL == 0) && (j != 0))
 			{
@@ -230,10 +254,9 @@ public:
 		}
 
 		// Probable prime?
-		std::vector<uint64> d(eng->get_size());
-		eng->get(d.data(), R0);
-		uint64_t res64 = 0; const bool is_prp = eng->is_one(d, res64);
-		d.clear();
+		engine::digit digit(eng, R0);
+		const bool is_prp = digit.equal_to(1);
+		const uint64_t res64 = digit.res64();
 
 		// d(t + 1) = d(t) * result
 		eng->set_multiplicand(R2, R1);
@@ -350,18 +373,18 @@ public:
 		}
 
 		// Prime?
-		std::vector<uint64> d(eng->get_size());
-		eng->get(d.data(), R0);
-		// Output is modulo 2^p then 0 (mod p) is 0 or 2^p - 1.
-		const bool is_prime = (eng->is_zero(d) || eng->is_Mp(d));
-		d.clear();
+		engine::digit digit(eng, R0);
+		const bool is_prime = (digit.equal_to(0) || digit.equal_to_Mp());
+		const uint64_t res64 = digit.res64();
 
 		if (verbose)
 		{
 			clearline();
 			const double elapsed_time = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start_clock).count() + restored_time;
-			std::cout << "2^" << p << " - 1 is " << (is_prime ? "prime" : "composite")
-				<< ", time = " << format_time(elapsed_time) << "." << std::endl << std::endl;
+			std::cout << "2^" << p << " - 1 is ";
+			if (is_prime) std::cout << "prime";
+			else std::cout << "composite, res64 = " << get_string(res64);
+			std::cout << ", time = " << format_time(elapsed_time) << "." << std::endl << std::endl;
 		}
 		else
 		{
@@ -451,10 +474,7 @@ public:
 			if (!valid(p, device)) return;
 			else
 			{
-				engine * const eng = new engine_info(p);
-				const size_t n = eng->get_size();
-				delete eng;
- 				std::cout << prm[i] << " (" << n << ")";
+ 				std::cout << prm[i] << " (" << ibdwt::transform_size(p) << ")";
 			}
 		}
 
@@ -504,11 +524,8 @@ public:
 
 	static void display_info(const uint32_t p)
 	{
-		engine * const eng = new engine_info(p);
-		const size_t n = eng->get_size();
-		const bool even = eng->get_even();
-		// const int ln_max = eng->get_ln_max();
-		delete eng;
+		const size_t n = ibdwt::transform_size(p);
+		const bool even = ibdwt::is_even(n);
 
 		const size_t sqr_size = (n % 5 == 0) ? 10 : 4;
 		size_t r = n / sqr_size;
@@ -519,7 +536,6 @@ public:
 		std::cout << sqr_size << " * ";
 		if (!even) { r /= 2; std::cout << "2 * "; }
 		std::cout << "4^" << ilog2_32(r) / 2;
-		// std::cout << " (ln_max = " << ln_max << ")";
 		std::cout << ", " << ((n / 4) >> lcwm_wg_size) << " * 2^" << lcwm_wg_size << std::endl;
 	}
 
@@ -542,15 +558,11 @@ public:
 			while (p_max - p_min > 2)
 			{
 				uint64_t p = (p_min + p_max) / 2; if (p % 2 == 0) --p;
-				engine * const eng = new engine_info(p);
-				const size_t n = eng->get_size();
-				delete eng;
+				const size_t n = ibdwt::transform_size(p);
 				if (n < next_n) p_min = p; else p_max = p;
 			}
 
-			engine * const eng = new engine_info(p_min);
-			const size_t n_min = eng->get_size();
-			delete eng;
+			const size_t n_min = ibdwt::transform_size(p_min);
 	
 			if (next_n != 4)
 			{
