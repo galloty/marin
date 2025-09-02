@@ -8,27 +8,35 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include <cstdint>
 #include <iostream>
 
-#include "mersenne_5.h"
+#include "mersenne_4.h"
 
 // Butterfly sizes are radix-2 and radix-5.
-// Radix-5 is the last stage of the transform.
+// Radix-5 is the first stage of the transform.
 
-class Mersenne25 : public Mersenne_5
+class Mersenne25 : public Mersenne_4
 {
 private:
 
 	// Transform
 	void forward(Zp * const x) const
 	{
-		const size_t n = _n, s5 = (n % 5 == 0) ? 5 : 4;
+		const size_t n = _n, s5 = (n % 5 == 0) ? 5 : 1, n5 = n / s5;
 		const Zp * const r2 = &_root.data()[0];
 
-		// Radix-2
-		for (size_t m = n / 2, s = 1; m >= s5; m /= 2, s *= 2)
+		if (s5 == 5)
+		{
+			for (size_t j = 0; j < n5; ++j)
+			{
+				const size_t k = j;
+				fwd5_0(x[k + 0 * n5], x[k + 1 * n5], x[k + 2 * n5], x[k + 3 * n5], x[k + 4 * n5]);
+			}
+		}
+
+		for (size_t s = s5, m = n5 / 2; s <= n / 8; s *= 2, m /= 2)
 		{
 			for (size_t j = 0; j < s; ++j)
 			{
-				const Zp r = r2[j];
+				const Zp r = r2[s + j];
 
 				for (size_t i = 0; i < m; ++i)
 				{
@@ -42,15 +50,14 @@ private:
 	// Inverse Transform
 	void backward(Zp * const x) const
 	{
-		const size_t n = _n, s5 = (n % 5 == 0) ? 5 : 4;
+		const size_t n = _n, s5 = (n % 5 == 0) ? 5 : 1, n5 = n / s5;
 		const Zp * const r2i = &_invroot.data()[0];
 
-		// Inverse radix-2
-		for (size_t m = s5, s = n / 2 / m; m <= n / 2; m *= 2, s /= 2)
+		for (size_t s = n / 8, m = 4; s >= s5; s /= 2, m *= 2)
 		{
 			for (size_t j = 0; j < s; ++j)
 			{
-				const Zp ri = r2i[j];
+				const Zp ri = r2i[s + j];
 
 				for (size_t i = 0; i < m; ++i)
 				{
@@ -59,10 +66,19 @@ private:
 				}
 			}
 		}
+
+		if (s5 == 5)
+		{
+			for (size_t j = 0; j < n5; ++j)
+			{
+				const size_t k = j;
+				bck5_0(x[k + 0 * n5], x[k + 4 * n5], x[k + 3 * n5], x[k + 2 * n5], x[k + 1 * n5]);
+			}
+		}
 	}
 
 public:
-	Mersenne25(const uint32_t q) : Mersenne_5(q) {}
+	Mersenne25(const uint32_t q) : Mersenne_4(q) {}
 	virtual ~Mersenne25() {}
 
 	void set(const Reg dst, const uint64_t a)
@@ -76,10 +92,9 @@ public:
 		Zp * const x = &_reg.data()[uint32_t(src) * n];
 
 		forward(x);
-		if (n % 5 == 0) sqr5(x); else sqr4(x);
+		sqr4(x);
 		backward(x);
-		const Zp f = (n % 5 == 0) ? _inv_n : _inv_n + _inv_n;
-		carry_weight(x, f);
+		carry_weight(x, _inv_n + _inv_n);
 	}
 
 	void set_multiplicand(const Reg dst, const Reg src) override
@@ -90,7 +105,7 @@ public:
 		Zp * const y = &_reg.data()[uint32_t(dst) * n];
 
 		forward(y);
-		if (n % 5 == 0) forward5(y); else forward4(y);
+		forward4(y);
 	}
 
 	void mul(const Reg dst, const Reg src) override
@@ -100,10 +115,9 @@ public:
 		const Zp * const y = &_reg.data()[uint32_t(src) * n];
 
 		forward(x);
-		if (n % 5 == 0) mul5(x, y); else mul4(x, y);
+		mul4(x, y);
 		backward(x);
-		const Zp f = (n % 5 == 0) ? _inv_n : _inv_n + _inv_n;
-		carry_weight(x, f);
+		carry_weight(x, _inv_n + _inv_n);
 	}
 };
 

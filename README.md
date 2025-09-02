@@ -16,7 +16,7 @@ The algorithm is different from Nick Craig-Wood's implementation:
  - A recursive polynomial factorization approach splits *x*<sup>2*n*</sup> - *r*<sup>2</sup> into *x*<sup>*n*</sup> - *r*, *x*<sup>*n*</sup> + *r* and *x*<sup>5*n*</sup> - *r*<sup>5</sup> into 5 polynomials of the form *x*<sup>*n*</sup> - *r*<sub>*i*</sub>. See: [Fast Multiplication](https://github.com/galloty/FastMultiplication).
  - Butterfly sizes are radix-4 and radix-5.  
 
-[*marin_algo.cpp*](algo/marin_algo.cpp) is a basic implementation of the algorithm. Two main aplications are generated:
+[*algo*](algo/) contains basic implementations of the algorithm. Two main aplications are generated:
 - *marin_cpu* is an implementation of the algorithm on CPU. It is not optimised, it helps to check and debug the OpenCL application.
 - *marin* is the optimised OpenCL application. It can test any prime exponent *p* in [3; 1,509,949,421].  
 

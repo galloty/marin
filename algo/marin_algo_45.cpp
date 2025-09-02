@@ -107,7 +107,8 @@ public:
 		forward(x);
 		if (n % 5 == 0) sqr5(x); else sqr4(x);
 		backward(x);
-		if (_even_exponent) carry_weight(x); else carry_weight2(x);
+		const Zp f = (n % 5 == 0) ? _inv_n : _inv_n + _inv_n;
+		if (_even_exponent) carry_weight(x, f); else carry_weight2(x, f);
 	}
 
 	void set_multiplicand(const Reg dst, const Reg src) override
@@ -130,7 +131,8 @@ public:
 		forward(x);
 		if (n % 5 == 0) mul5(x, y); else mul4(x, y);
 		backward(x);
-		if (_even_exponent) carry_weight(x); else carry_weight2(x);
+		const Zp f = (n % 5 == 0) ? _inv_n : _inv_n + _inv_n;
+		if (_even_exponent) carry_weight(x, f); else carry_weight2(x, f);
 	}
 };
 

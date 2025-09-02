@@ -35,7 +35,7 @@ protected:
 	static constexpr size_t transform_size(const uint32_t exponent)
 	{
 		// Make sure the transform is long enough so that each 'digit' can't overflow after the convolution.
-		uint32_t w = 0, log2_n = 1, log2_n5 = 0;
+		uint32_t w = 0, log2_n = 1, log2_n5 = 1;
 		do
 		{
 			++log2_n;
@@ -52,7 +52,7 @@ protected:
 		// log2(5) ~ 2.3219 < 2.4
 		} while ((w + 1) * 2 + (log2_n5 + 2.4) >= 64);
 
-		return std::min(size_t(1) << log2_n, size_t(5) << log2_n5);	// must be >= 4
+		return std::min(size_t(1) << log2_n, size_t(5) << log2_n5);	// must be >= 4 or 5 * 4
 	}
 
 	// Bit-reversal permutation
@@ -63,6 +63,24 @@ protected:
 		return r;
 	}
 
+	// Digit-reversal permutation (n = 2^e * 5^f)
+	static constexpr size_t reversal(const size_t i, const size_t n)
+	{
+		size_t r = 0, k = n, j = i;
+		while (k % 2 == 0) { r = 2 * r + j % 2; k /= 2; j /= 2; }
+		while (k % 5 == 0) { r = 5 * r + j % 5; k /= 5; j /= 5; }
+		return r;
+	}
+
+	// Inverse digit-reversal permutation (n = 2^e * 5^f)
+	static constexpr size_t inv_reversal(const size_t i, const size_t n)
+	{
+		size_t r = 0, k = n, j = i;
+		while (k % 5 == 0) { r = 5 * r + j % 5; k /= 5; j /= 5; }
+		while (k % 2 == 0) { r = 2 * r + j % 2; k /= 2; j /= 2; }
+		return r;
+	}
+	
 	// Radix-2
 	static void fwd2(Zp & x0, Zp & x1, const Zp & r)
 	{
@@ -128,6 +146,22 @@ protected:
 		x0 = a0; x1 = ri * a1; x2 = ri2 * a2; x3 = ri3 * a3; x4 = ri4 * a4;
 	}
 
+	// Radix-5, first stage
+	static void fwd5_0(Zp & x0, Zp & x1, Zp & x2, Zp & x3, Zp & x4)
+	{
+		Zp a0 = x0, a1 = x1, a2 = x2, a3 = x3, a4 = x4;
+		butterfly5(a0, a1, a2, a3, a4);
+		x0 = a0; x1 = a1; x2 = a2; x3 = a3; x4 = a4;
+	}
+
+	// Inverse radix-5, first stage
+	static void bck5_0(Zp & x0, Zp & x1, Zp & x2, Zp & x3, Zp & x4)
+	{
+		Zp a0 = x0, a4 = x1, a3 = x2, a2 = x3, a1 = x4;
+		butterfly5(a0, a1, a2, a3, a4);
+		x0 = a0; x1 = a1; x2 = a2; x3 = a3; x4 = a4;
+	}
+
 	// 2 x Radix-2, sqr, inverse radix-2
 	static void sqr22(Zp & x0, Zp & x1, Zp & x2, Zp & x3, const Zp & r)
 	{
@@ -141,10 +175,9 @@ protected:
 		const Zp t2 = x2 * y2 - x3 * y3 * r; x3 = x2 * y3 + x3 * y2; x2 = t2;
 	}
 
-	void carry_weight(Zp * const x) const
+	void carry_weight(Zp * const x, const Zp & f) const
 	{
 		const size_t n = _n;
-		const Zp inv_n = _inv_n;
 		const Zp * const w = _weight.data();
 		const Zp * const wi = _invweight.data();
 		const uint8_t * const width = _digit_width.data();
@@ -152,7 +185,7 @@ protected:
 		uint64_t c = 0;
 		for (size_t k = 0; k < n; ++k)
 		{
-			const Zp u = x[k] * inv_n * wi[k];
+			const Zp u = x[k] * f * wi[k];
 			x[k] = u.digit_adc(width[k], c) * w[k];
 		}
 
@@ -167,10 +200,9 @@ protected:
 		}
 	}
 
-	void carry_weight2(Zp * const x) const
+	void carry_weight2(Zp * const x, const Zp f) const
 	{
 		const size_t n = _n;
-		const Zp inv_n = _inv_n;
 		const Zp * const w = _weight.data();
 		const Zp * const wi = _invweight.data();
 		const uint8_t * const width = _digit_width.data();
@@ -180,8 +212,8 @@ protected:
 		{
 			const Zp u0 = x[k + 0 * n / 2], u1 = x[k + 1 * n / 2];
 			// inverse radix-2
-			const Zp v0 = (u0 + u1) * inv_n * wi[k + 0 * n / 2];
-			const Zp v1 = (u0 - u1) * inv_n * wi[k + 1 * n / 2];
+			const Zp v0 = (u0 + u1) * f * wi[k + 0 * n / 2];
+			const Zp v1 = (u0 - u1) * f * wi[k + 1 * n / 2];
 			const Zp s0 = v0.digit_adc(width[k + 0 * n / 2], c0) * w[k + 0 * n / 2];
 			const Zp s1 = v1.digit_adc(width[k + 1 * n / 2], c1) * w[k + 1 * n / 2];
 			// radix-2
@@ -207,7 +239,7 @@ protected:
 	}
 
 public:
-	Mersenne(const uint32_t q) : _n(transform_size(q)), _inv_n(Zp((_n % 5 == 0) ? _n : _n / 2).invert()),
+	Mersenne(const uint32_t q) : _n(transform_size(q)), _inv_n(Zp((_n % 5 == 0) ? _n : _n / 1).invert()),
 		_reg(3 * _n),	// allocate 3 registers
 		_root(_n), _invroot(_n),
 		_weight(_n), _invweight(_n), _digit_width(_n)
