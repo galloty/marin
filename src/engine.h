@@ -36,6 +36,19 @@ public:
 	virtual bool get_checkpoint(std::vector<char> & data) const = 0;
 	virtual bool set_checkpoint(const std::vector<char> & data) const = 0;
 
+	// reg_0 = reg^e, reg is erased
+	void pow(const size_t reg, const uint64_t e) const
+	{
+		set_multiplicand(reg, reg);
+		set(0, 1);
+		if (e == 0) return;
+		for (int i = std::bit_width(e) - 1; i >= 0; --i)
+		{
+			square_mul(0);
+			if ((e & (static_cast<uint64_t>(1) << i)) != 0) mul(0, reg);
+		}
+	}
+
 	class digit
 	{
 	private:
