@@ -36,16 +36,16 @@ public:
 	virtual bool get_checkpoint(std::vector<char> & data) const = 0;
 	virtual bool set_checkpoint(const std::vector<char> & data) const = 0;
 
-	// reg_0 = reg^e, reg is erased
-	void pow(const size_t reg, const uint64_t e) const
+	// dst = src^e, src is erased
+	void pow(const Reg dst, const Reg src, const uint64_t e) const
 	{
-		set_multiplicand(reg, reg);
-		set(0, 1);
+		set_multiplicand(src, src);
+		set(dst, 1);
 		if (e == 0) return;
 		for (int i = std::bit_width(e) - 1; i >= 0; --i)
 		{
-			square_mul(0);
-			if ((e & (static_cast<uint64_t>(1) << i)) != 0) mul(0, reg);
+			square_mul(dst);
+			if ((e & (static_cast<uint64_t>(1) << i)) != 0) mul(dst, src);
 		}
 	}
 
