@@ -25,13 +25,13 @@ public:
 
 	virtual size_t get_size() const = 0;
 	virtual void set(const Reg dst, const uint64 a) const = 0;
-	virtual void load_words(const Reg dst, const uint32_t* words, uint32_t nWords, uint32_t E) const = 0;
 	virtual void copy(const Reg dst, const Reg src) const = 0;
 	virtual bool is_equal(const Reg src1, const Reg src2) const = 0;
 	virtual void square_mul(const Reg src, const uint32 a = 1) const = 0;
 	virtual void set_multiplicand(const Reg dst, const Reg src) const = 0;
 	virtual void mul(const Reg dst, const Reg src) const = 0;
 	virtual void sub(const Reg src, const uint32 a) const = 0;
+
 	virtual size_t get_checkpoint_size() const = 0;
 	virtual bool get_checkpoint(std::vector<char> & data) const = 0;
 	virtual bool set_checkpoint(const std::vector<char> & data) const = 0;
@@ -106,6 +106,6 @@ public:
 		}
 	};
 
-	static engine * create_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose);
+	static engine * create_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose, const size_t chunk256_max);
 	static engine * create_cpu(const uint32_t q);
 };

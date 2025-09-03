@@ -94,7 +94,7 @@ public:
 		// We must have (u / 4) * CHUNKu <= n / 8 and CHUNKu < m
 		_chunk16(std::min(std::max(n / 8 * 4 / 16, size_t(1)), size_t(16))),	// 16 * CHUNK16 uint64_2 <= 4KB, workgroup size = (16 / 4) * CHUNK16 <= 64
 		_chunk64(std::min(std::max(n / 8 * 4 / 64, size_t(1)), size_t(4))),		// 64 * CHUNK64 uint64_2 <= 4KB, workgroup size = (64 / 4) * CHUNK64 <= 64
-		_chunk256(std::min(std::max(n / 8 * 4 / 256, size_t(1)), size_t(4))),	// 256 * CHUNK256 uint64_2 <= 16KB, workgroup size = (256 / 4) * CHUNK256 <= 256
+		_chunk256(std::min(std::max(n / 8 * 4 / 256, size_t(1)), size_t(chunk256_max))),	// 256 * CHUNK256 uint64_2 <= 16KB, workgroup size = (256 / 4) * CHUNK256 <= 256
 		// 1024: 1024 uint64_2 = 16KB, workgroup size = 1024 / 4 = 256
 
 		// We must have 5 * (u / 4) * CHUNKu <= n / 8
@@ -465,7 +465,7 @@ private:
 	std::vector<uint8> _digit_width;
 
 public:
-	engine_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose) : engine(),
+	engine_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose, size_t chunk256_max = 4) : engine(),
 		_reg_count(reg_count), _n(ibdwt::transform_size(q)), _even(ibdwt::is_even(_n))
 	{
 		const size_t n = _n;
@@ -545,36 +545,6 @@ public:
 
 		_gpu->write_reg(x.data(), size_t(dst));
 	}
-
-	void load_words(const Reg dst, const uint32_t* words, uint32_t nWords, uint32_t E) const override
-	{
-		const size_t n = _n;
-		std::vector<uint64> x(n, 0);
-
-		const uint32_t L = (E + 31u) / 32u;
-		const uint32_t use = std::min(nWords, L);
-		size_t m = (use + 1u) / 2u;
-
-		for (size_t j = 0; j < m; ++j) {
-			const uint64 lo = (2*j < use)     ? uint64(words[2*j])     : 0ull;
-			const uint64 hi = (2*j+1 < use)   ? uint64(words[2*j + 1]) : 0ull;
-			x[j] = lo | (hi << 32);
-		}
-
-		if ((E & 63u) && m > 0) {
-			const uint32_t r = (E & 63u);
-			const uint64 mask = (r == 0) ? ~0ull : ((1ull << r) - 1ull);
-			x[m - 1] &= mask;
-		}
-
-		if (!_even) {
-			const size_t half = n / 2;
-			for (size_t j = 0; j < m && (half + j) < n; ++j) x[half + j] = x[j];
-		}
-
-		_gpu->write_reg(x.data(), size_t(dst));
-	}
-
 
 	void get(uint64 * const d, const Reg src) const override
 	{
