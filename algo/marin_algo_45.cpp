@@ -26,7 +26,6 @@ private:
 		const Zp * const r2 = &_root.data()[0];
 		const Zp * const r4 = &_root.data()[n5 / 2];
 
-		// Radix-4
 		for (size_t s = _even_exponent ? 1 : 2, m = n / 4 / s; m >= s5; m /= 4, s *= 4)
 		{
 			for (size_t j = 0; j < s; ++j)
@@ -49,7 +48,6 @@ private:
 		const Zp * const r2i = &_invroot.data()[0];
 		const Zp * const r4i = &_invroot.data()[n5 / 2];
 
-		// Inverse radix-4
 		for (size_t m = s5, s = n / 4 / m; m <= n / 4; m *= 4, s /= 4)
 		{
 			for (size_t j = 0; j < s; ++j)

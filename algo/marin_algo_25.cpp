@@ -23,7 +23,6 @@ private:
 		const size_t n = _n, s5 = (n % 5 == 0) ? 5 : 4;
 		const Zp * const r2 = &_root.data()[0];
 
-		// Radix-2
 		for (size_t m = n / 2, s = 1; m >= s5; m /= 2, s *= 2)
 		{
 			for (size_t j = 0; j < s; ++j)
@@ -45,7 +44,6 @@ private:
 		const size_t n = _n, s5 = (n % 5 == 0) ? 5 : 4;
 		const Zp * const r2i = &_invroot.data()[0];
 
-		// Inverse radix-2
 		for (size_t m = s5, s = n / 2 / m; m <= n / 2; m *= 2, s /= 2)
 		{
 			for (size_t j = 0; j < s; ++j)

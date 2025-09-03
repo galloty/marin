@@ -111,6 +111,22 @@ protected:
 		x0 = v0 + v2; x2 = ri1 * (v0 - v2); x1 = ri20 * (v1 + v3); x3 = ri21 *(v1 - v3);
 	}
 
+	// Radix-4, first stage
+	static void fwd4_0(Zp & x0, Zp & x1, Zp & x2, Zp & x3)
+	{
+		const Zp u0 = x0, u2 = x2, u1 = x1, u3 = x3;
+		const Zp v0 = u0 + u2, v2 = u0 - u2, v1 = u1 + u3, v3 = (u1 - u3).muli();
+		x0 = v0 + v1; x1 = v0 - v1; x2 = v2 + v3; x3 = v2 - v3;
+	}
+
+	// Inverse radix-4, first stage
+	static void bck4_0(Zp & x0, Zp & x1, Zp & x2, Zp & x3)
+	{
+		const Zp u0 = x0, u1 = x1, u2 = x2, u3 = x3;
+		const Zp v0 = u0 + u1, v1 = u0 - u1, v2 = u3 + u2, v3 = (u3 - u2).muli();
+		x0 = v0 + v2; x2 = v0 - v2; x1 = v1 + v3; x3 = v1 - v3;
+	}
+
 	// Winograd, S. On computing the discrete Fourier transform, Math. Comp. 32 (1978), no. 141, 175–199.
 	static void butterfly5(Zp & a0, Zp & a1, Zp & a2, Zp & a3, Zp & a4)
 	{
@@ -241,7 +257,7 @@ protected:
 public:
 	Mersenne(const uint32_t q) : _n(transform_size(q)), _inv_n(Zp((_n % 5 == 0) ? _n : _n / 1).invert()),
 		_reg(3 * _n),	// allocate 3 registers
-		_root(_n), _invroot(_n),
+		_root(3 * _n / 2), _invroot(3 * _n / 2),
 		_weight(_n), _invweight(_n), _digit_width(_n)
 	{
 		const size_t n = _n;
