@@ -103,7 +103,7 @@ private:
 #endif
 
 		std::ostringstream ss;
-		ss << "marin" << ext << " version 25.08.3 (" << sys_ver << comp_ver.str() << ")" << std::endl;
+		ss << "marin" << ext << " version 25.08.4 (" << sys_ver << comp_ver.str() << ")" << std::endl;
 		ss << "Copyright (c) 2025, Yves Gallot" << std::endl;
 		ss << "marin is free source code, under the MIT license." << std::endl;
 		ss << std::endl << "Command line: '";

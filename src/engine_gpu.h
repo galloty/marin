@@ -532,7 +532,7 @@ public:
 
 	size_t get_size() const override { return _n; }
 
-	void set(const Reg dst, const uint64 a) const override
+	void set(const Reg dst, const uint32 a) const override
 	{
 		const size_t n = _n;
 		std::vector<uint64> x(n);
@@ -806,6 +806,22 @@ public:
 	}
 
 	void sub(const Reg src, const uint32 a) const override { _gpu->subtract(size_t(src), a); }
+
+	size_t get_register_data_size() const override { return _reg_count * _n * sizeof(uint64); }
+
+	bool get_data(std::vector<char> & data, const Reg src) const override
+	{
+		if (data.size() != get_register_data_size()) return false;
+		_gpu->read_reg(reinterpret_cast<uint64 *>(data.data()), size_t(src));
+		return true;
+	}
+
+	bool set_data(const Reg dst, const std::vector<char> & data) const override
+	{
+		if (data.size() != get_register_data_size()) return false;
+		_gpu->write_reg(reinterpret_cast<const uint64 *>(data.data()), size_t(dst));
+		return true;
+	}
 
 	size_t get_checkpoint_size() const override { return _reg_count * _n * sizeof(uint64); }
 

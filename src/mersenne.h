@@ -32,7 +32,7 @@ public:
 	virtual ~engine_info() {}
 
 	size_t get_size() const override { return _n; }
-	void set(const Reg, const uint64) const override {}
+	void set(const Reg, const uint32) const override {}
 	void get(uint64 *, const Reg) const override  {}
 	void copy(const Reg, const Reg) const override {}
 	bool is_equal(const Reg, const Reg) const override { return false; }
@@ -40,6 +40,9 @@ public:
 	void set_multiplicand(const Reg, const Reg) const override {}
 	void mul(const Reg, const Reg) const override {}
 	void sub(const Reg, const uint32) const override {}
+	size_t get_register_data_size() const override { return 0; }
+	bool get_data(std::vector<char> &, const Reg) const override { return false; }
+	bool set_data(const Reg, const std::vector<char> &) const override { return false; }
 	size_t get_checkpoint_size() const override { return 0; }
 	bool get_checkpoint(std::vector<char> &) const override { return false; }
 	bool set_checkpoint(const std::vector<char> &) const override { return false; }

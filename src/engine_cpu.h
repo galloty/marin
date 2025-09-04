@@ -406,7 +406,7 @@ public:
 
 	size_t get_size() const override { return _n; }
 
-	void set(const Reg dst, const uint64 a) const override
+	void set(const Reg dst, const uint32 a) const override
 	{
 		const size_t n = _n;
 		uint64 * const x = const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]);
@@ -548,6 +548,24 @@ public:
 				}
 			}
 		}
+	}
+
+	size_t get_register_data_size() const override  { return _n * sizeof(uint64); }
+
+	bool get_data(std::vector<char> & data, const Reg src) const override
+	{
+		const size_t size = get_register_data_size();
+		if (data.size() != size) return false;
+		std::memcpy(data.data(), &_reg.data()[size_t(src) * _n], size);
+		return true;
+	}
+
+	bool set_data(const Reg dst, const std::vector<char> & data) const override
+	{
+		const size_t size = get_register_data_size();
+		if (data.size() != size) return false;
+		std::memcpy(const_cast<uint64 *>(&_reg.data()[size_t(dst) * _n]), data.data(), size);
+		return true;
 	}
 
 	size_t get_checkpoint_size() const override { return 3 * _n * sizeof(uint64); }
