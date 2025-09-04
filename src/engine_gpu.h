@@ -94,7 +94,7 @@ public:
 		// We must have (u / 4) * CHUNKu <= n / 8 and CHUNKu < m
 		_chunk16(std::min(std::max(n / 8 * 4 / 16, size_t(1)), size_t(16))),	// 16 * CHUNK16 uint64_2 <= 4KB, workgroup size = (16 / 4) * CHUNK16 <= 64
 		_chunk64(std::min(std::max(n / 8 * 4 / 64, size_t(1)), size_t(4))),		// 64 * CHUNK64 uint64_2 <= 4KB, workgroup size = (64 / 4) * CHUNK64 <= 64
-		_chunk256(std::min(std::max(n / 8 * 4 / 256, size_t(1)), size_t(4))),	// 256 * CHUNK256 uint64_2 <= 16KB, workgroup size = (256 / 4) * CHUNK256 <= 256
+		_chunk256(std::min(std::max(n / 8 * 4 / 256, size_t(1)), size_t(chunk256_max))),	// 256 * CHUNK256 uint64_2 <= 16KB, workgroup size = (256 / 4) * CHUNK256 <= 256
 		// 1024: 1024 uint64_2 = 16KB, workgroup size = 1024 / 4 = 256
 
 		// We must have 5 * (u / 4) * CHUNKu <= n / 8
@@ -465,7 +465,7 @@ private:
 	std::vector<uint8> _digit_width;
 
 public:
-	engine_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose) : engine(),
+	engine_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose, size_t chunk256_max = 4) : engine(),
 		_reg_count(reg_count), _n(ibdwt::transform_size(q)), _even(ibdwt::is_even(_n))
 	{
 		const size_t n = _n;

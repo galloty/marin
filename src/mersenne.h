@@ -192,7 +192,7 @@ public:
 	{
 		engine * const eng =
 #if defined(GPU)
-			engine::create_gpu(p, 3, device, verbose);	// 3 registers
+			engine::create_gpu(p, 3, device, verbose, 4);	// 3 registers
 #else
 			engine::create_cpu(p);
 			(void)device;
@@ -322,7 +322,7 @@ public:
 	{
 		engine * const eng =
 #if defined(GPU)
-			engine::create_gpu(p, 1, device, verbose);	// 1 register
+			engine::create_gpu(p, 1, device, verbose, 4);	// 1 register
 #else
 			engine::create_cpu(p);
 			(void)device;
@@ -402,7 +402,7 @@ public:
 	{
 		engine * const eng =
 #if defined(GPU)
-			engine::create_gpu(p, 3, device, true);	// 3 registers
+			engine::create_gpu(p, 3, device, true, 4);	// 3 registers
 #else
 			engine::create_cpu(p);
 			(void)device;

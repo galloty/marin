@@ -132,6 +132,6 @@ public:
 		}
 	};
 
-	static engine * create_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose);
+	static engine * create_gpu(const uint32_t q, const size_t reg_count, const size_t device, const bool verbose, const size_t chunk256_max);
 	static engine * create_cpu(const uint32_t q);
 };
