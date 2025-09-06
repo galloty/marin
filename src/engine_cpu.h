@@ -16,8 +16,9 @@ class engine_cpu : public engine
 {
 private:
 	const size_t _n;
+	const size_t _reg_count;
+	const uint64 _inv_n_2;
 	const bool _even;
-	const int _ln_max;
 	std::vector<uint64> _reg;	// the weighted representation of R0, R1, ...
 	std::vector<uint64> _root;
 	std::vector<uint64> _weight;
@@ -25,20 +26,6 @@ private:
 	std::vector<uint64> _carry;
 
 private:
-	// Radix-2
-	static void fwd2(uint64 & x0, uint64 & x1, const uint64 r)
-	{
-		const uint64 u0 = x0, u1 = mod_mul(r, x1);
-		x0 = mod_add(u0, u1); x1 = mod_sub(u0, u1);
-	}
-
-	// Inverse radix-2
-	static void bck2(uint64 & x0, uint64 & x1, const uint64 ri)
-	{
-		const uint64 u0 = x0, u1 = x1;
-		x0 = mod_add(u0, u1); x1 = mod_mul(ri, mod_sub(u0, u1));
-	}
-
 	// Radix-4
 	static void fwd4(uint64 & x0, uint64 & x1, uint64 & x2, uint64 & x3, const uint64 r1, const uint64 r20, const uint64 r21)
 	{
@@ -53,6 +40,22 @@ private:
 		const uint64 u0 = x0, u1 = x1, u2 = x2, u3 = x3;
 		const uint64 v0 = mod_add(u0, u1), v1 = mod_sub(u0, u1), v2 = mod_add(u3, u2), v3 = mod_muli(mod_sub(u3, u2));
 		x0 = mod_add(v0, v2); x2 = mod_mul(ri1, mod_sub(v0, v2)); x1 = mod_mul(ri20, mod_add(v1, v3)); x3 = mod_mul(ri21, mod_sub(v1, v3));
+	}
+
+	// Radix-4, first stage
+	static void fwd4_0(uint64 & x0, uint64 & x1, uint64 & x2, uint64 & x3)
+	{
+		const uint64 u0 = x0, u2 = x2, u1 = x1, u3 = x3;
+		const uint64 v0 = mod_add(u0, u2), v2 = mod_sub(u0, u2), v1 = mod_add(u1, u3), v3 = mod_muli(mod_sub(u1, u3));
+		x0 = mod_add(v0, v1); x1 = mod_sub(v0, v1); x2 = mod_add(v2, v3); x3 = mod_sub(v2, v3);
+	}
+
+	// Inverse radix-4, first stage
+	static void bck4_0(uint64 & x0, uint64 & x1, uint64 & x2, uint64 & x3)
+	{
+		const uint64 u0 = x0, u1 = x1, u2 = x2, u3 = x3;
+		const uint64 v0 = mod_add(u0, u1), v1 = mod_sub(u0, u1), v2 = mod_add(u3, u2), v3 = mod_muli(mod_sub(u3, u2));
+		x0 = mod_add(v0, v2); x2 = mod_sub(v0, v2); x1 = mod_add(v1, v3); x3 = mod_sub(v1, v3);
 	}
 
 	// 2 x radix-2
@@ -88,226 +91,239 @@ private:
 		a0 = m0; a1 = s14; a2 = s16; a3 = s17; a4 = s15;
 	}
 
-	// Radix-5
-	static void fwd5(uint64 & x0, uint64 & x1, uint64 & x2, uint64 & x3, uint64 & x4, const uint64 r)
+	// Radix-5, first stage
+	static void fwd5_0(uint64 & x0, uint64 & x1, uint64 & x2, uint64 & x3, uint64 & x4)
 	{
-		const uint64 r2 = mod_mul(r, r), r3 = mod_mul(r, r2), r4 = mod_sqr(r2);
-		uint64 a0 = x0, a1 = mod_mul(r, x1), a2 = mod_mul(r2, x2), a3 = mod_mul(r3, x3), a4 = mod_mul(r4, x4);
+		uint64 a0 = x0, a1 = x1, a2 = x2, a3 = x3, a4 = x4;
 		butterfly5(a0, a1, a2, a3, a4);
 		x0 = a0; x1 = a1; x2 = a2; x3 = a3; x4 = a4;
 	}
 
-	// Inverse radix-5
-	static void bck5(uint64 & x0, uint64 & x1, uint64 & x2, uint64 & x3, uint64 & x4, const uint64 ri)
+	// Inverse radix-5, first stage
+	static void bck5_0(uint64 & x0, uint64 & x1, uint64 & x2, uint64 & x3, uint64 & x4)
 	{
 		uint64 a0 = x0, a4 = x1, a3 = x2, a2 = x3, a1 = x4;
 		butterfly5(a0, a1, a2, a3, a4);
-		const uint64 ri2 = mod_mul(ri, ri), ri3 = mod_mul(ri, ri2), ri4 = mod_sqr(ri2);
-		x0 = a0; x1 = mod_mul(ri, a1); x2 = mod_mul(ri2, a2); x3 = mod_mul(ri3, a3); x4 = mod_mul(ri4, a4);
+		x0 = a0; x1 = a1; x2 = a2; x3 = a3; x4 = a4;
 	}
 
-	// Transform, n = 4^e
-	void forward4(uint64 * const x) const
+	// 2 x Radix-2, sqr, inverse radix-2
+	static void sqr22(uint64 & x0, uint64 & x1, uint64 & x2, uint64 & x3, const uint64 & r)
 	{
-		const size_t n = _n, n_4 = n / 4;
-		const uint64 * const r2 = &_root.data()[0];
-		const uint64 * const r4 = &_root.data()[n / 2];
-
-		for (int lm = _ln_max; lm >= 2; lm -= 2)
-		{
-			const size_t m = size_t(1) << lm;
-			for (size_t id = 0; id < n_4; ++id)
-			{
-				const size_t j = id >> lm, k = 3 * (id & ~(m - 1)) + id;
-				fwd4(x[k + 0 * m], x[k + 1 * m], x[k + 2 * m], x[k + 3 * m], r2[j], r4[2 * j + 0], r4[2 * j + 1]);
-			}
-		}
+		const uint64 t0 = mod_add(mod_sqr(x0), mod_mul(mod_sqr(x1), r)); x1 = mod_mul(x1, mod_add(x0, x0)); x0 = t0;
+		const uint64 t2 = mod_sub(mod_sqr(x2), mod_mul(mod_sqr(x3), r)); x3 = mod_mul(x3, mod_add(x2, x2)); x2 = t2;
 	}
 
-	// Inverse transform, n = 4^e
-	void backward4(uint64 * const x) const
+	static void mul22(uint64 & x0, uint64 & x1, uint64 & x2, uint64 & x3, const uint64 & y0, const uint64 & y1, const uint64 & y2, const uint64 & y3, const uint64 & r)
 	{
-		const size_t n = _n, n_4 = n / 4;
-		const uint64 * const r2i = &_root.data()[n];
-		const uint64 * const r4i = &_root.data()[n + n / 2];
-
-		for (int lm = 2, lm_max = _ln_max; lm <= lm_max; lm += 2)
-		{
-			const size_t m = size_t(1) << lm;
-			for (size_t id = 0; id < n_4; ++id)
-			{
-				const size_t j = id >> lm, k = 3 * (id & ~(m - 1)) + id;
-				bck4(x[k + 0 * m], x[k + 1 * m], x[k + 2 * m], x[k + 3 * m], r2i[j], r4i[2 * j + 0], r4i[2 * j + 1]);
-			}
-		}
+		const uint64 t0 = mod_add(mod_mul(x0, y0), mod_mul(mod_mul(x1, y1), r)); x1 = mod_add(mod_mul(x0, y1), mod_mul(x1, y0)); x0 = t0;
+		const uint64 t2 = mod_sub(mod_mul(x2, y2), mod_mul(mod_mul(x3, y3), r)); x3 = mod_add(mod_mul(x2, y3), mod_mul(x3, y2)); x2 = t2;
 	}
 
-	// Radix-2
+	// Radix-4
 	void forward_mul4(uint64 * const x) const
 	{
-		const size_t n_4 = _n / 4;
+		const size_t n = _n, n_4 = n / 4;
 		const uint64 * const r2 = &_root.data()[0];
 
 		for (size_t id = 0; id < n_4; ++id)
 		{
 			const size_t j = id, k = 4 * id;
-			fwd22(x[k + 0], x[k + 1], x[k + 2], x[k + 3], r2[j]);
+
+			fwd22(x[k + 0], x[k + 1], x[k + 2], x[k + 3], r2[n_4 + j]);
 		}
 	}
 
-	// Radix-2, square2x2, inverse radix-2
+	// Radix-4, square, inverse radix-4
 	void sqr4(uint64 * const x) const
 	{
 		const size_t n = _n, n_4 = n / 4;
 		const uint64 * const r2 = &_root.data()[0];
-		const uint64 * const r2i = &_root.data()[n];
+		const uint64 * const r2i = &_root.data()[n / 2];
 
 		for (size_t id = 0; id < n_4; ++id)
 		{
 			const size_t j = id, k = 4 * id;
-			const uint64 r = r2[j];
+
+			const uint64 r = r2[n_4 + j];
 			uint64 x0 = x[k + 0], x1 = x[k + 1], x2 = x[k + 2], x3 = x[k + 3];
 			fwd22(x0, x1, x2, x3, r);
-			const uint64 t0 = mod_add(mod_sqr(x0), mod_mul(mod_sqr(x1), r)); x1 = mod_mul(x1, mod_add(x0, x0)); x0 = t0;
-			const uint64 t2 = mod_sub(mod_sqr(x2), mod_mul(mod_sqr(x3), r)); x3 = mod_mul(x3, mod_add(x2, x2)); x2 = t2;
-			bck22(x0, x1, x2, x3, r2i[j]);
+			sqr22(x0, x1, x2, x3, r);
+			bck22(x0, x1, x2, x3, r2i[n_4 + j]);
 			x[k + 0] = x0; x[k + 1] = x1; x[k + 2] = x2; x[k + 3] = x3;
 		}
 	}
 
-	// Radix-2, mul2x2, inverse radix-2
+	// Radix-4, mul, inverse radix-4
 	void mul4(uint64 * const x, const uint64 * const y) const
 	{
 		const size_t n = _n, n_4 = n / 4;
 		const uint64 * const r2 = &_root.data()[0];
-		const uint64 * const r2i = &_root.data()[n];
+		const uint64 * const r2i = &_root.data()[_n / 2];
 
 		for (size_t id = 0; id < n_4; ++id)
 		{
 			const size_t j = id, k = 4 * id;
-			const uint64 r = r2[j];
+
+			const uint64 r = r2[n_4 + j];
 			uint64 x0 = x[k + 0], x1 = x[k + 1], x2 = x[k + 2], x3 = x[k + 3];
 			fwd22(x0, x1, x2, x3, r);
-			const uint64 y0 = y[k + 0], y1 = y[k + 1], y2 = y[k + 2], y3 = y[k + 3];
-			const uint64 t0 = mod_add(mod_mul(x0, y0), mod_mul(mod_mul(x1, y1), r)); x1 = mod_add(mod_mul(x0, y1), mod_mul(x1, y0)); x0 = t0;
-			const uint64 t2 = mod_sub(mod_mul(x2, y2), mod_mul(mod_mul(x3, y3), r)); x3 = mod_add(mod_mul(x2, y3), mod_mul(x3, y2)); x2 = t2;
-			bck22(x0, x1, x2, x3, r2i[j]);
+			mul22(x0, x1, x2, x3, y[k + 0], y[k + 1], y[k + 2], y[k + 3], r);
+			bck22(x0, x1, x2, x3, r2i[n_4 + j]);
 			x[k + 0] = x0; x[k + 1] = x1; x[k + 2] = x2; x[k + 3] = x3;
 		}
 	}
 
-	// Transform, n = 10 * 4^e
-	void forward5(uint64 * const x) const
+	// Radix-8
+	void forward_mul8(uint64 * const x) const
 	{
-		const size_t n = _n, n_4 = n / 4, n_5 = n / 5;
+		const size_t n = _n, n_8 = _n / 8;
 		const uint64 * const r2 = &_root.data()[0];
-		const uint64 * const r4 = &_root.data()[n_5 / 2];
+		const uint64 * const r4 = &_root.data()[n];
 
-		for (int lm = _ln_max; lm >= 1; lm -= 2)
+		for (size_t id = 0; id < n_8; ++id)
 		{
-			const size_t m = size_t(1) << lm, m5 = size_t(5) << lm;
+			const size_t j = id, k = 8 * id;
+	
+			const uint64 r1 = r2[n_8 + j], r20 = r4[2 * (n_8 + j) + 0], r21 = r4[2 * (n_8 + j) + 1];
+			fwd4(x[k + 0], x[k + 2], x[k + 4], x[k + 6], r1, r20, r21);
+			fwd4(x[k + 1], x[k + 3], x[k + 5], x[k + 7], r1, r20, r21);
+		}
+	}
+
+	// Radix-8, square, inverse radix-8
+	void sqr8(uint64 * const x) const
+	{
+		const size_t n = _n, n_8 = n / 8;
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r2i = &_root.data()[n / 2];
+		const uint64 * const r4 = &_root.data()[n];
+		const uint64 * const r4i = &_root.data()[n + n];
+
+		for (size_t id = 0; id < n_8; ++id)
+		{
+			const size_t j = id, k = 8 * id;
+
+			uint64 x0 = x[k + 0], x1 = x[k + 1], x2 = x[k + 2], x3 = x[k + 3];
+			uint64 x4 = x[k + 4], x5 = x[k + 5], x6 = x[k + 6], x7 = x[k + 7];
+
+			const uint64 r1 = r2[n_8 + j], r20 = r4[2 * (n_8 + j) + 0], r21 = r4[2 * (n_8 + j) + 1];
+			fwd4(x0, x2, x4, x6, r1, r20, r21);
+			fwd4(x1, x3, x5, x7, r1, r20, r21);
+
+			sqr22(x0, x1, x2, x3, r20);
+			sqr22(x4, x5, x6, x7, mod_muli(r20));
+
+			const uint64 r1i = r2i[n_8 + j], r20i = r4i[2 * (n_8 + j) + 0], r21i = r4i[2 * (n_8 + j) + 1];
+			bck4(x0, x2, x4, x6, r1i, r20i, r21i);
+			bck4(x1, x3, x5, x7, r1i, r20i, r21i);
+
+			x[k + 0] = x0; x[k + 1] = x1; x[k + 2] = x2; x[k + 3] = x3;
+			x[k + 4] = x4; x[k + 5] = x5; x[k + 6] = x6; x[k + 7] = x7;
+		}
+	}
+
+	// Radix-8, mul, inverse radix-8
+	void mul8(uint64 * const x, const uint64 * const y) const
+	{
+		const size_t n = _n, n_8 = n / 8;
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r2i = &_root.data()[n / 2];
+		const uint64 * const r4 = &_root.data()[n];
+		const uint64 * const r4i = &_root.data()[n + n];
+
+		for (size_t id = 0; id < n_8; ++id)
+		{
+			const size_t j = id, k = 8 * id;
+
+			uint64 x0 = x[k + 0], x1 = x[k + 1], x2 = x[k + 2], x3 = x[k + 3];
+			uint64 x4 = x[k + 4], x5 = x[k + 5], x6 = x[k + 6], x7 = x[k + 7];
+
+			const uint64 r1 = r2[n_8 + j], r20 = r4[2 * (n_8 + j) + 0], r21 = r4[2 * (n_8 + j) + 1];
+			fwd4(x0, x2, x4, x6, r1, r20, r21);
+			fwd4(x1, x3, x5, x7, r1, r20, r21);
+
+			mul22(x0, x1, x2, x3, y[k + 0], y[k + 1], y[k + 2], y[k + 3], r20);
+			mul22(x4, x5, x6, x7, y[k + 4], y[k + 5], y[k + 6], y[k + 7], mod_muli(r20));
+
+			const uint64 r1i = r2i[n_8 + j], r20i = r4i[2 * (n_8 + j) + 0], r21i = r4i[2 * (n_8 + j) + 1];
+			bck4(x0, x2, x4, x6, r1i, r20i, r21i);
+			bck4(x1, x3, x5, x7, r1i, r20i, r21i);
+
+			x[k + 0] = x0; x[k + 1] = x1; x[k + 2] = x2; x[k + 3] = x3;
+			x[k + 4] = x4; x[k + 5] = x5; x[k + 6] = x6; x[k + 7] = x7;
+		}
+	}
+
+	// Transform, n = 4^e or 5 * 4^e
+	void forward(uint64 * const x) const
+	{
+		const size_t n = _n, n_4 = n / 4, s5 = (n % 5 == 0) ? 5 : 4, n_5 = (n % 5 == 0) ? n / 5 : n;
+		const uint64 * const r2 = &_root.data()[0];
+		const uint64 * const r4 = &_root.data()[n];
+
+		if (s5 == 5)
+		{
+			for (size_t id = 0; id < n_5; ++id)
+			{
+				const size_t k = id;
+				fwd5_0(x[k + 0 * n_5], x[k + 1 * n_5], x[k + 2 * n_5], x[k + 3 * n_5], x[k + 4 * n_5]);
+			}
+		}
+		else if (n >= 16)
+		{
 			for (size_t id = 0; id < n_4; ++id)
 			{
-				const uint32 id5 = uint32((uint64(id) * 858993460u) >> 32);	// id5 = id / 5 if id < 2^30
-				const size_t j = id5 >> lm, k = 3 * 5 * (id5 & ~(m - 1)) + id;
-				fwd4(x[k + 0 * m5], x[k + 1 * m5], x[k + 2 * m5], x[k + 3 * m5], r2[j], r4[2 * j + 0], r4[2 * j + 1]);
+				const size_t k = id;
+				fwd4_0(x[k + 0 * n_4], x[k + 1 * n_4], x[k + 2 * n_4], x[k + 3 * n_4]);
+			}
+		}
+
+		const int lm_min = _even ? 2 : 3, lm_max = ilog2(n_4 / s5);
+		size_t s = s5;
+		for (int lm = lm_max; lm >= lm_min; lm -= 2, s *= 4)
+		{
+			for (size_t id = 0; id < n_4; ++id)
+			{
+				const size_t m = size_t(1) << lm, sj = s + (id >> lm), k = 3 * (id & ~(m - 1)) + id;
+				fwd4(x[k + 0 * m], x[k + 1 * m], x[k + 2 * m], x[k + 3 * m], r2[sj], r4[2 * sj + 0], r4[2 * sj + 1]);
 			}
 		}
 	}
 
-	// Inverse transform, n = 10 * 4^e
-	void backward5(uint64 * const x) const
+	// Inverse Transform, n = 4^e or 5 * 4^e
+	void backward(uint64 * const x) const
 	{
-		const size_t n = _n, n_4 = n / 4, n_5 = n / 5;
-		const uint64 * const r2i = &_root.data()[n];
-		const uint64 * const r4i = &_root.data()[n + n_5 / 2];
+		const size_t n = _n, n_4 = n / 4, s5 = (n % 5 == 0) ? 5 : 4, n_5 = (n % 5 == 0) ? n / 5 : n;
+		const uint64 * const r2i = &_root.data()[n / 2];
+		const uint64 * const r4i = &_root.data()[n + n];
 
-		for (int lm = 1, lm_max = _ln_max; lm <= lm_max; lm += 2)
+		const int lm_min = _even ? 2 : 3, lm_max = ilog2(n_4 / s5);
+		size_t s = n_4 >> lm_min;
+		for (int lm = lm_min; lm <= lm_max; lm += 2, s /= 4)
 		{
-			const size_t m = size_t(1) << lm, m5 = size_t(5) << lm;
 			for (size_t id = 0; id < n_4; ++id)
 			{
-				const uint32 id5 = uint32((uint64(id) * 858993460u) >> 32);	// id5 = id / 5 if id < 2^30
-				const size_t j = id5 >> lm, k = 3 * 5 * (id5 & ~(m - 1)) + id;
-				bck4(x[k + 0 * m5], x[k + 1 * m5], x[k + 2 * m5], x[k + 3 * m5], r2i[j], r4i[2 * j + 0], r4i[2 * j + 1]);
+				const size_t m = size_t(1) << lm, sj = s + (id >> lm), k = 3 * (id & ~(m - 1)) + id;
+				bck4(x[k + 0 * m], x[k + 1 * m], x[k + 2 * m], x[k + 3 * m], r2i[sj], r4i[2 * sj + 0], r4i[2 * sj + 1]);
 			}
 		}
-	}
 
-	// Radix-2, Radix-5
-	void forward_mul10(uint64 * const x) const
-	{
-		const size_t n = _n, n_5 = n / 5, n_10 = n_5 / 2;
-		const uint64 * const r2 = &_root.data()[0];
-		const uint64 * const r5 = &_root.data()[n_5];
-
-		for (size_t id = 0; id < n_10; ++id)
+		if (s5 == 5)
 		{
-			const size_t j = id, k = 10 * id;
-			const uint64 r = r2[j];
-			uint64 x0 = x[k + 0], x1 = x[k + 1], x2 = x[k + 2], x3 = x[k + 3], x4 = x[k + 4];
-			uint64 x5 = x[k + 5], x6 = x[k + 6], x7 = x[k + 7], x8 = x[k + 8], x9 = x[k + 9];
-			fwd2(x0, x5, r); fwd2(x1, x6, r); fwd2(x2, x7, r); fwd2(x3, x8, r); fwd2(x4, x9, r);
-			fwd5(x0, x1, x2, x3, x4, r5[2 * j + 0]);
-			fwd5(x5, x6, x7, x8, x9, r5[2 * j + 1]);
-			x[k + 0] = x0; x[k + 1] = x1; x[k + 2] = x2; x[k + 3] = x3; x[k + 4] = x4;
-			x[k + 5] = x5; x[k + 6] = x6; x[k + 7] = x7; x[k + 8] = x8; x[k + 9] = x9;
+			for (size_t id = 0; id < n_5; ++id)
+			{
+				const size_t k = id;
+				bck5_0(x[k + 0 * n_5], x[k + 4 * n_5], x[k + 3 * n_5], x[k + 2 * n_5], x[k + 1 * n_5]);
+			}
 		}
-	}
-
-	// Radix-2, Radix-5, square, inverse radix-5, inverse radix-2
-	void sqr10(uint64 * const x) const
-	{
-		const size_t n = _n, n_5 = n / 5, n_10 = n_5 / 2;
-		const uint64 * const r2 = &_root.data()[0];
-		const uint64 * const r2i = &_root.data()[n];
-		const uint64 * const r5 = &_root.data()[n_5];
-		const uint64 * const r5i = &_root.data()[n + n_5];
-
-		for (size_t id = 0; id < n_10; ++id)
+		else if (n >= 16)
 		{
-			const size_t j = id, k = 10 * id;
-			const uint64 r = r2[j], ri = r2i[j];
-			uint64 x0 = x[k + 0], x1 = x[k + 1], x2 = x[k + 2], x3 = x[k + 3], x4 = x[k + 4];
-			uint64 x5 = x[k + 5], x6 = x[k + 6], x7 = x[k + 7], x8 = x[k + 8], x9 = x[k + 9];
-			fwd2(x0, x5, r); fwd2(x1, x6, r); fwd2(x2, x7, r); fwd2(x3, x8, r); fwd2(x4, x9, r);
-			fwd5(x0, x1, x2, x3, x4, r5[2 * j + 0]);
-			fwd5(x5, x6, x7, x8, x9, r5[2 * j + 1]);
-			x0 = mod_sqr(x0); x1 = mod_sqr(x1); x2 = mod_sqr(x2); x3 = mod_sqr(x3); x4 = mod_sqr(x4);
-			x5 = mod_sqr(x5); x6 = mod_sqr(x6); x7 = mod_sqr(x7); x8 = mod_sqr(x8); x9 = mod_sqr(x9);
-			bck5(x0, x1, x2, x3, x4, r5i[2 * j + 0]);
-			bck5(x5, x6, x7, x8, x9, r5i[2 * j + 1]);
-			bck2(x0, x5, ri); bck2(x1, x6, ri); bck2(x2, x7, ri); bck2(x3, x8, ri); bck2(x4, x9, ri);
-			x[k + 0] = x0; x[k + 1] = x1; x[k + 2] = x2; x[k + 3] = x3; x[k + 4] = x4;
-			x[k + 5] = x5; x[k + 6] = x6; x[k + 7] = x7; x[k + 8] = x8; x[k + 9] = x9;
-		}
-	}
-
-	// Radix-2, Radix-5, mul, inverse radix-5, inverse radix-2
-	void mul10(uint64 * const x, const uint64 * const y) const
-	{
-		const size_t n = _n, n_5 = n / 5, n_10 = n_5 / 2;
-		const uint64 * const r2 = &_root.data()[0];
-		const uint64 * const r2i = &_root.data()[n];
-		const uint64 * const r5 = &_root.data()[n_5];
-		const uint64 * const r5i = &_root.data()[n + n_5];
-
-		for (size_t id = 0; id < n_10; ++id)
-		{
-			const size_t j = id, k = 10 * id;
-			const uint64 r = r2[j], ri = r2i[j];
-			uint64 x0 = x[k + 0], x1 = x[k + 1], x2 = x[k + 2], x3 = x[k + 3], x4 = x[k + 4];
-			uint64 x5 = x[k + 5], x6 = x[k + 6], x7 = x[k + 7], x8 = x[k + 8], x9 = x[k + 9];
-			fwd2(x0, x5, r); fwd2(x1, x6, r); fwd2(x2, x7, r); fwd2(x3, x8, r); fwd2(x4, x9, r);
-			fwd5(x0, x1, x2, x3, x4, r5[2 * j + 0]);
-			fwd5(x5, x6, x7, x8, x9, r5[2 * j + 1]);
-			x0 = mod_mul(x0, y[k + 0]); x1 = mod_mul(x1, y[k + 1]); x2 = mod_mul(x2, y[k + 2]); x3 = mod_mul(x3, y[k + 3]); x4 = mod_mul(x4, y[k + 4]);
-			x5 = mod_mul(x5, y[k + 5]); x6 = mod_mul(x6, y[k + 6]); x7 = mod_mul(x7, y[k + 7]); x8 = mod_mul(x8, y[k + 8]); x9 = mod_mul(x9, y[k + 9]);
-			bck5(x0, x1, x2, x3, x4, r5i[2 * j + 0]);
-			bck5(x5, x6, x7, x8, x9, r5i[2 * j + 1]);
-			bck2(x0, x5, ri); bck2(x1, x6, ri); bck2(x2, x7, ri); bck2(x3, x8, ri); bck2(x4, x9, ri);
-			x[k + 0] = x0; x[k + 1] = x1; x[k + 2] = x2; x[k + 3] = x3; x[k + 4] = x4;
-			x[k + 5] = x5; x[k + 6] = x6; x[k + 7] = x7; x[k + 8] = x8; x[k + 9] = x9;
+			for (size_t id = 0; id < n_4; ++id)
+			{
+				const size_t k = id;
+				bck4_0(x[k + 0 * n_4], x[k + 1 * n_4], x[k + 2 * n_4], x[k + 3 * n_4]);
+			}
 		}
 	}
 
@@ -315,8 +331,8 @@ private:
 	void carry_weight_mul(uint64 * const x, const uint32 a = 1) const
 	{
 		const size_t n = _n, n_4 = n / 4;
+		const uint64 inv_n_2 = _inv_n_2;
 		const uint64 * const w = &_weight.data()[0];
-		const uint64 * const wi_n = &_weight.data()[n];
 		const uint8 * const width = _digit_width.data();
 		uint64 * const carry = const_cast<uint64 *>(_carry.data());
 
@@ -326,7 +342,8 @@ private:
 			for (size_t i = 0; i < 4; ++i)
 			{
 				const size_t k = 4 * id + i;
-				const uint64 u = mod_mul(x[k], wi_n[k]);
+				const uint64 wi = w[2 * (k / 4 + (k % 4) * (n / 4)) + 1];
+				const uint64 u = mod_mul(mod_mul(x[k], inv_n_2), wi);
 				x[k] = adc_mul(u, a, width[k], c);
 			}
 			carry[(id != n_4 - 1) ? id + 1 : 0] = c;
@@ -338,67 +355,26 @@ private:
 			for (size_t i = 0; i < 3; ++i)
 			{
 				const size_t k = 4 * id + i;
-				x[k] = mod_mul(adc(x[k], width[k], c), w[k]);
+				x[k] = mod_mul(adc(x[k], width[k], c), w[2 * (k / 4 + (k % 4) * (n / 4)) + 0]);
 			}
 			const size_t k = 4 * id + 3;
-			x[k] = mod_mul(x[k] + c, w[k]);
-		}
-	}
-
-	// Inverse radix-2, unweight, carry, mul by a, weight, radix-2
-	void carry_weight_mul2(uint64 * const x, const uint32 a = 1) const
-	{
-		const size_t n = _n, n_8 = n / 8, n_2 = n / 2;
-		const uint64 * const w = &_weight.data()[0];
-		const uint64 * const wi_n = &_weight.data()[n];
-		const uint8 * const width = _digit_width.data();
-		uint64 * const carry = const_cast<uint64 *>(_carry.data());
-
-		for (size_t id = 0; id < n_8; ++id)
-		{
-			uint64 c0 = 0, c1 = 0;
-			for (size_t i = 0; i < 4; ++i)
-			{
-				const size_t k = 4 * id + i;
-				const uint64 u0 = x[k + 0 * n_2], u1 = x[k + 1 * n_2];
-				const uint64 v0 = mod_mul(mod_add(u0, u1), wi_n[k + 0 * n_2]);
-				const uint64 v1 = mod_mul(mod_sub(u0, u1), wi_n[k + 1 * n_2]);
-				x[k + 0 * n_2] = adc_mul(v0, a, width[k + 0 * n_2], c0);
-				x[k + 1 * n_2] = adc_mul(v1, a, width[k + 1 * n_2], c1);
-			}
-			carry[id + 1 + 0 * n_8] = c0; carry[(id != n_8 - 1) ? id + 1 + 1 * n_8 : 0] = c1;
-		}
-
-		for (size_t id = 0; id < n_8; ++id)
-		{
-			uint64 c0 = carry[id + 0 * n_8], c1 = carry[id + 1 * n_8];
-			for (size_t i = 0; i < 3; ++i)
-			{
-				const size_t k = 4 * id + i;
-				const uint64 u0 = mod_mul(adc(x[k + 0 * n_2], width[k + 0 * n_2], c0), w[k + 0 * n_2]); 
-				const uint64 u1 = mod_mul(adc(x[k + 1 * n_2], width[k + 1 * n_2], c1), w[k + 1 * n_2]);
-				x[k + 0 * n_2] = mod_add(u0, u1); x[k + 1 * n_2] = mod_sub(u0, u1);
-			}
-			const size_t k = 4 * id + 3;
-			const uint64 u0 = mod_mul(x[k + 0 * n_2] + c0, w[k + 0 * n_2]); 
-			const uint64 u1 = mod_mul(x[k + 1 * n_2] + c1, w[k + 1 * n_2]);
-			x[k + 0 * n_2] = mod_add(u0, u1); x[k + 1 * n_2] = mod_sub(u0, u1);
+			x[k] = mod_mul(x[k] + c, w[2 * (k / 4 + (k % 4) * (n / 4)) + 0]);
 		}
 	}
 
 public:
-	engine_cpu(const uint32_t q) : engine(), _n(ibdwt::transform_size(q)), _even(ibdwt::is_even(_n)),
-		_ln_max(ilog2_32(uint32_t((_n % 5 == 0) ? _n / 5 : _n)) - (_even ? 2 : 3))
+	engine_cpu(const uint32_t q, const size_t reg_count) : engine(), _n(ibdwt::transform_size(q)),
+		_reg_count(reg_count), _inv_n_2(MOD_P - (MOD_P - 1) / (_n / 2)), _even(ibdwt::is_even(_n))
 	{
 		const size_t n = _n;
 
-		_reg.resize(3 * n);	// allocate 3 registers
-		_root.resize(2 * n);
-		_weight.resize(3 * n);
+		_reg.resize(reg_count * n);
+		_root.resize(3 * n);
+		_weight.resize(2 * n);
 		_digit_width.resize(n);
 		_carry.resize(n / 4);
 
-		ibdwt::roots(n, _root.data());
+		ibdwt::roots54(n, _root.data());
 		ibdwt::weights_widths(n, q, _weight.data(), _digit_width.data());
 	}
 
@@ -413,34 +389,24 @@ public:
 
 		x[0] = a;	// weight[0] = 1
 		for (size_t k = 1; k < n; ++k) x[k] = 0;
-
-		// radix-2
-		if (!_even) x[n / 2] = x[0];
 	}
 
 	void get(uint64 * const d, const Reg src) const override
 	{
 		const size_t n = _n;
 		const uint64 * const x = &_reg.data()[size_t(src) * n];
-		const uint64 * const wi = &_weight.data()[2 * n];
+		const uint64 * const w = &_weight.data()[0];
 		const uint8 * const width = _digit_width.data();
 
 		for (size_t k = 0; k < n; ++k) d[k] = x[k];
 
-		if (!_even)
-		{
-			// inverse radix-2
-			for (size_t k = 0; k < n / 2; ++k)
-			{
-				const uint64 u0 = d[k + 0 * n / 2], u1 = d[k + 1 * n / 2];
-				const uint64 v0 = mod_half(mod_add(u0, u1)), v1 = mod_half(mod_sub(u0, u1));
-				d[k + 0 * n / 2] = v0; d[k + 1 * n / 2] = v1;
-			}
-		}
-
 		// unweight, carry (strong)
 		uint64 c = 0;
-		for (size_t k = 0; k < n; ++k) d[k] = adc(mod_mul(d[k], wi[k]), width[k], c);
+		for (size_t k = 0; k < n; ++k)
+		{
+			const uint64 wi = w[2 * (k / 4 + (k % 4) * (n / 4)) + 1];
+			d[k] = adc(mod_mul(d[k], wi), width[k], c);
+		} 
 
 		while (c != 0)
 		{
@@ -479,9 +445,10 @@ public:
 		const size_t n = _n;
 		uint64 * const x = const_cast<uint64 *>(&_reg.data()[size_t(src) * n]);
 
-		if (n % 5 == 0) { forward5(x); sqr10(x); backward5(x); }
-		else { forward4(x); sqr4(x); backward4(x); }
-		if (_even) carry_weight_mul(x, a); else carry_weight_mul2(x, a);
+		forward(x);
+		if (_even) sqr4(x); else sqr8(x);
+		backward(x);
+		carry_weight_mul(x, a);
 	}
 
 	void set_multiplicand(const Reg dst, const Reg src) const override
@@ -491,8 +458,8 @@ public:
 		const size_t n = _n;
 		uint64 * const y = const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]);
 
-		if (n % 5 == 0) { forward5(y); forward_mul10(y); }
-		else { forward4(y); forward_mul4(y);}
+		forward(y);
+		if (_even) forward_mul4(y); else forward_mul8(y);
 	}
 
 	void mul(const Reg dst, const Reg src) const override
@@ -501,9 +468,10 @@ public:
 		uint64 * const x = const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]);
 		const uint64 * const y = &_reg.data()[size_t(src) * n];
 
-		if (n % 5 == 0) { forward5(x); mul10(x, y); backward5(x); }
-		else { forward4(x); mul4(x, y); backward4(x); }
-		if (_even) carry_weight_mul(x); else carry_weight_mul2(x);
+		forward(x);
+		if (_even) mul4(x, y); else mul8(x, y);
+		backward(x);
+		carry_weight_mul(x);
 	}
 
 	void sub(const Reg src, const uint32 a) const override
@@ -511,41 +479,17 @@ public:
 		const size_t n = _n;
 		uint64 * const x = const_cast<uint64 *>(&_reg.data()[size_t(src) * n]);
 		const uint64 * const w = &_weight.data()[0];
-		const uint64 * const wi = &_weight.data()[2 * n];
 		const uint8 * const width = _digit_width.data();
 
 		uint32 c = a;
 		while (c != 0)
 		{
-			if (_even)
+			// Unweight, sub with carry, weight
+			for (size_t k = 0; k < n; ++k)
 			{
-				// Unweight, sub with carry, weight
-				for (size_t k = 0; k < n; ++k)
-				{
-					x[k] = mod_mul(sbc(mod_mul(x[k], wi[k]), width[k], c), w[k]);
-					if (c == 0) return;
-				}
-			}
-			else
-			{
-				// Inverse radix-2, unweight, sub with carry, weight, radix-2
-				const size_t n_2 = n / 2;
-				for (size_t k = 0; k < n_2; ++k)
-				{
-					const uint64 u0 = x[k + 0 * n_2], u1 = x[k + 1 * n_2];
-					const uint64 v0 = mod_half(mod_add(u0, u1)), v1 = mod_half(mod_sub(u0, u1));
-					const uint64 v0n = mod_mul(sbc(mod_mul(v0, wi[k + 0 * n_2]), width[k + 0 * n_2], c), w[k + 0 * n_2]);
-					x[k + 0 * n_2] = mod_add(v0n, v1); x[k + 1 * n_2] = mod_sub(v0n, v1);
-					if (c == 0) return;
-				}
-				for (size_t k = 0; k < n_2; ++k)
-				{
-					const uint64 u0 = x[k + 0 * n_2], u1 = x[k + 1 * n_2];
-					const uint64 v0 = mod_half(mod_add(u0, u1)), v1 = mod_half(mod_sub(u0, u1));
-					const uint64 v1n = mod_mul(sbc(mod_mul(v1, wi[k + 1 * n_2]), width[k + 1 * n_2], c), w[k + 1 * n_2]);
-					x[k + 0 * n_2] = mod_add(v0, v1n); x[k + 1 * n_2] = mod_sub(v0, v1n);
-					if (c == 0) return;
-				}
+				const uint64 wi = w[2 * (k / 4 + (k % 4) * (n / 4)) + 1];
+				x[k] = mod_mul(sbc(mod_mul(x[k], wi), width[k], c), w[2 * (k / 4 + (k % 4) * (n / 4)) + 0]);
+				if (c == 0) return;
 			}
 		}
 	}
@@ -568,7 +512,7 @@ public:
 		return true;
 	}
 
-	size_t get_checkpoint_size() const override { return 3 * _n * sizeof(uint64); }
+	size_t get_checkpoint_size() const override { return _reg_count * _n * sizeof(uint64); }
 
 	bool get_checkpoint(std::vector<char> & data) const override
 	{

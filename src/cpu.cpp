@@ -9,4 +9,4 @@ Please give feedback to the authors if improvement is realized. It is distribute
 
 #include "engine_cpu.h"
 
-engine * engine::create_cpu(const uint32_t p) { return new engine_cpu(p); }
+engine * engine::create_cpu(const uint32_t p, const size_t reg_count) { return new engine_cpu(p, reg_count); }

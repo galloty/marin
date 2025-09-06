@@ -190,11 +190,12 @@ public:
 
 	bool check(const uint32_t p, const size_t device, const bool verbose = true, const bool test_GL = false)
 	{
+		// 3 registers
 		engine * const eng =
 #if defined(GPU)
-			engine::create_gpu(p, 3, device, verbose);	// 3 registers
+			engine::create_gpu(p, 3, device, verbose);
 #else
-			engine::create_cpu(p);
+			engine::create_cpu(p, 3);
 			(void)device;
 #endif
 		if (verbose) std::cout << "Testing 2^" << p << " - 1, " << eng->get_size() << " 64-bit words..." << std::endl;
@@ -324,7 +325,7 @@ public:
 #if defined(GPU)
 			engine::create_gpu(p, 1, device, verbose);	// 1 register
 #else
-			engine::create_cpu(p);
+			engine::create_cpu(p, 1);
 			(void)device;
 #endif
 		if (verbose) std::cout << "Testing 2^" << p << " - 1, " << eng->get_size() << " 64-bit words..." << std::endl;
@@ -400,11 +401,12 @@ public:
 
 	bool valid(const uint32_t p, const size_t device)
 	{
+		// 3 registers
 		engine * const eng =
 #if defined(GPU)
-			engine::create_gpu(p, 3, device, true);	// 3 registers
+			engine::create_gpu(p, 3, device, true);
 #else
-			engine::create_cpu(p);
+			engine::create_cpu(p, 3);
 			(void)device;
 #endif
 
@@ -499,8 +501,8 @@ public:
 
 		for (size_t i = 0; i < sizeof(prm) / sizeof(uint32_t); ++i)
 		{
-			if (!check(prm[i], device)) return;
-			// if (!checkLL(prm[i], device)) return;
+			// if (!check(prm[i], device)) return;
+			if (!checkLL(prm[i], device)) return;
 		}
 #else
 		// 3, 5, 7, 13, 17, 19, 31, 61, 89, 107, 127, 521, 607, 1279, 2203, 2281, 3217, 4253, 4423, 9689, 9941, 11213, 19937, 21701, 23209,
@@ -528,17 +530,17 @@ public:
 	static void display_info(const uint32_t p)
 	{
 		const size_t n = ibdwt::transform_size(p);
-		const bool even = ibdwt::is_even(n);
+		const bool even = ibdwt::is_even((n % 5 == 0) ? n / 2 : n);
 
 		const size_t sqr_size = (n % 5 == 0) ? 10 : 4;
 		size_t r = n / sqr_size;
-		const uint32_t n5 = uint32_t((n % 5 == 0) ? n / 5 : n);
-		const int lcwm_wg_size = ilog2_32(std::min(n5 / (even ? 4 : 8), 1024u));
+		const size_t n_5 = (n % 5 == 0) ? n / 5 : n;
+		const int lcwm_wg_size = ilog2(std::min(n_5 / (even ? 4 : 8), size_t(1024)));
 
 		std::cout << p << ", " << n << " = ";
 		std::cout << sqr_size << " * ";
 		if (!even) { r /= 2; std::cout << "2 * "; }
-		std::cout << "4^" << ilog2_32(r) / 2;
+		std::cout << "4^" << ilog2(r) / 2;
 		std::cout << ", " << ((n / 4) >> lcwm_wg_size) << " * 2^" << lcwm_wg_size << std::endl;
 	}
 

@@ -10,7 +10,7 @@ Please give feedback to the authors if improvement is realized. It is distribute
 
 #include "mersenne_4.h"
 
-// Butterfly sizes are radix-2 and radix-5.
+// Butterfly sizes are radix-4 and radix-5.
 // Radix-5 is the first stage of the transform.
 
 class Mersenne54 : public Mersenne_4
