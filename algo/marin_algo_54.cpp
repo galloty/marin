@@ -87,7 +87,7 @@ private:
 			for (size_t j = 0; j < n5; ++j)
 			{
 				const size_t k = j;
-				bck5_0(x[k + 0 * n5], x[k + 4 * n5], x[k + 3 * n5], x[k + 2 * n5], x[k + 1 * n5]);
+				bck5_0(x[k + 0 * n5], x[k + 1 * n5], x[k + 2 * n5], x[k + 3 * n5], x[k + 4 * n5]);
 			}
 		}
 		else if (n >= 16)

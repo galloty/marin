@@ -173,9 +173,9 @@ protected:
 	// Inverse radix-5, first stage
 	static void bck5_0(Zp & x0, Zp & x1, Zp & x2, Zp & x3, Zp & x4)
 	{
-		Zp a0 = x0, a4 = x1, a3 = x2, a2 = x3, a1 = x4;
+		Zp a0 = x0, a1 = x1, a2 = x2, a3 = x3, a4 = x4;
 		butterfly5(a0, a1, a2, a3, a4);
-		x0 = a0; x1 = a1; x2 = a2; x3 = a3; x4 = a4;
+		x0 = a0; x1 = a4; x2 = a3; x3 = a2; x4 = a1;
 	}
 
 	// 2 x Radix-2, sqr, inverse radix-2

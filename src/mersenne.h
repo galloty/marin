@@ -501,8 +501,8 @@ public:
 
 		for (size_t i = 0; i < sizeof(prm) / sizeof(uint32_t); ++i)
 		{
-			// if (!check(prm[i], device)) return;
-			if (!checkLL(prm[i], device)) return;
+			if (!check(prm[i], device)) return;
+			// if (!checkLL(prm[i], device)) return;
 		}
 #else
 		// 3, 5, 7, 13, 17, 19, 31, 61, 89, 107, 127, 521, 607, 1279, 2203, 2281, 3217, 4253, 4423, 9689, 9941, 11213, 19937, 21701, 23209,

@@ -56,7 +56,7 @@ public:
 	virtual bool set_checkpoint(const std::vector<char> & data) const = 0;
 
 	// dst = src^e, src is erased
-	void pow(const Reg dst, const Reg src, const uint64_t e) const
+	void pow(const Reg dst, const Reg src, const uint64 e) const
 	{
 		set_multiplicand(src, src);
 		set(dst, 1);
@@ -64,7 +64,7 @@ public:
 		for (int i = std::bit_width(e) - 1; i >= 0; --i)
 		{
 			square_mul(dst);
-			if ((e & (static_cast<uint64_t>(1) << i)) != 0) mul(dst, src);
+			if ((e & (static_cast<uint64>(1) << i)) != 0) mul(dst, src);
 		}
 	}
 
@@ -93,10 +93,10 @@ public:
 		// 64-bit residue: src modulo 2^64
 		uint64 res64() const
 		{
-			uint64_t r64 = 0; uint8 s = 0;
+			uint64 r64 = 0; uint8 s = 0;
 			for (uint64 d :_data)
 			{
-				const uint64_t u = uint32(d);
+				const uint64 u = uint32(d);
 				const uint8 width = uint8(d >> 32);
 				r64 += u << s;
 				s += width;
@@ -106,14 +106,14 @@ public:
 		}
 
 		// src ?= a
-		bool equal_to(const uint64_t a) const
+		bool equal_to(const uint64 a) const
 		{
-			uint64_t r = a;
+			uint64 r = a;
 			for (uint64 d :_data)
 			{
-				const uint64_t u = uint32(d);
+				const uint64 u = uint32(d);
 				const uint8 width = uint8(d >> 32);
-				if ((r & ((uint64_t(1) << width) - 1)) != u) return false;
+				if ((r & ((uint64(1) << width) - 1)) != u) return false;
 				r >>= width;
 			}
 			return true;
@@ -124,9 +124,9 @@ public:
 		{
 			for (uint64 d :_data)
 			{
-				const uint64_t u = uint32(d);
+				const uint64 u = uint32(d);
 				const uint8 width = uint8(d >> 32);
-				if (u != (uint64_t(1) << width) - 1) return false;
+				if (u != (uint64(1) << width) - 1) return false;
 			} 
 			return true;
 		}

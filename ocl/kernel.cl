@@ -1456,7 +1456,8 @@ void carry_weight_mul_p1(__global uint64 * restrict const reg, __global uint64 *
 
 	const sz_t gid = (sz_t)get_global_id(0), lid = gid % CWM_WG_SZ;
 
-	uint64_2 w2[4]; for (sz_t i = 0; i < 4; ++i) w2[i] = weight2[gid + i * N_SZ_4];
+	uint64_2 w2[4]; loadg2(4, w2, &weight2[gid], N_SZ_4);
+
 	const uint64_4 w = (uint64_4)(w2[0].s0, w2[1].s0, w2[2].s0, w2[3].s0);
 	const uint64_4 wi = (uint64_4)(w2[0].s1, w2[1].s1, w2[2].s1, w2[3].s1);
 
@@ -1490,7 +1491,7 @@ void carry_weight_mul_p2(__global uint64 * restrict const reg, __global const ui
 
 	const sz_t gid = (sz_t)get_global_id(0), id = CWM_WG_SZ * gid;
 
-	uint64_2 w2[4]; for (sz_t i = 0; i < 4; ++i) w2[i] = weight2[id + i * N_SZ_4];
+	uint64_2 w2[4]; loadg2(4, w2, &weight2[id], N_SZ_4);
 	const uint64_4 w = (uint64_4)(w2[0].s0, w2[1].s0, w2[2].s0, w2[3].s0);
 	const uint64_4 wi = (uint64_4)(w2[0].s1, w2[1].s1, w2[2].s1, w2[3].s1);
 
@@ -1520,11 +1521,11 @@ void carry_weight_mul2_p1(__global uint64 * restrict const reg, __global uint64 
 
 	const sz_t gid = (sz_t)get_global_id(0), lid = gid % CWM_WG_SZ2;
 
-	uint64_2 w2_0[4]; for (sz_t i = 0; i < 4; ++i) w2_0[i] = weight2[gid + 0 * N_SZ_8 + i * N_SZ_4];
+	uint64_2 w2_0[4]; loadg2(4, w2_0, &weight2[gid + 0 * N_SZ_8], N_SZ_4);
 	const uint64_4 w_0 = (uint64_4)(w2_0[0].s0, w2_0[1].s0, w2_0[2].s0, w2_0[3].s0);
 	const uint64_4 wi_0 = (uint64_4)(w2_0[0].s1, w2_0[1].s1, w2_0[2].s1, w2_0[3].s1);
 
-	uint64_2 w2_1[4]; for (sz_t i = 0; i < 4; ++i) w2_1[i] = weight2[gid + 1 * N_SZ_8 + i * N_SZ_4];
+	uint64_2 w2_1[4]; loadg2(4, w2_1, &weight2[gid + 1 * N_SZ_8], N_SZ_4);
 	const uint64_4 w_1 = (uint64_4)(w2_1[0].s0, w2_1[1].s0, w2_1[2].s0, w2_1[3].s0);
 	const uint64_4 wi_1 = (uint64_4)(w2_1[0].s1, w2_1[1].s1, w2_1[2].s1, w2_1[3].s1);
 
@@ -1569,11 +1570,11 @@ void carry_weight_mul2_p2(__global uint64 * restrict const reg, __global const u
 
 	const sz_t gid = (sz_t)get_global_id(0), id = CWM_WG_SZ2 * gid;
 
-	uint64_2 w2_0[4]; for (sz_t i = 0; i < 4; ++i) w2_0[i] = weight2[id + 0 * N_SZ_8 + i * N_SZ_4];
+	uint64_2 w2_0[4]; loadg2(4, w2_0, &weight2[id + 0 * N_SZ_8], N_SZ_4);
 	const uint64_4 w_0 = (uint64_4)(w2_0[0].s0, w2_0[1].s0, w2_0[2].s0, w2_0[3].s0);
 	const uint64_4 wi_0 = (uint64_4)(w2_0[0].s1, w2_0[1].s1, w2_0[2].s1, w2_0[3].s1);
 
-	uint64_2 w2_1[4]; for (sz_t i = 0; i < 4; ++i) w2_1[i] = weight2[id + 1 * N_SZ_8 + i * N_SZ_4];
+	uint64_2 w2_1[4]; loadg2(4, w2_1, &weight2[id + 1 * N_SZ_8], N_SZ_4);
 	const uint64_4 w_1 = (uint64_4)(w2_1[0].s0, w2_1[1].s0, w2_1[2].s0, w2_1[3].s0);
 	const uint64_4 wi_1 = (uint64_4)(w2_1[0].s1, w2_1[1].s1, w2_1[2].s1, w2_1[3].s1);
 
