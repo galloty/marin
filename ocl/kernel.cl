@@ -38,14 +38,22 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #define MAX_WG_SZ	256
 #endif
 
-typedef uint	sz_t;
-typedef uchar	uint_8;
-typedef uint	uint32;
-typedef int		int32;
-typedef ulong	uint64;
-typedef uchar4	uint_8_4;
-typedef ulong2	uint64_2;
-typedef ulong4	uint64_4;
+typedef uchar  u8;
+typedef uint   u32;
+typedef int    s32;
+typedef ulong  u64;
+typedef uchar4 u8x4;
+typedef ulong2 u64x2;
+typedef ulong4 u64x4;
+typedef u32    sz_t;
+
+#define uint_8    u8
+#define uint32    u32
+#define int32     s32
+#define uint64    u64
+#define uint_8_4  u8x4
+#define uint64_2  u64x2
+#define uint64_4  u64x4
 
 INLINE sz_t div5(const sz_t n) { return mul_hi(n, 858993460u); }	// = n / 5 if n < 2^30
 
