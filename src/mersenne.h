@@ -11,6 +11,7 @@ Please give feedback to the authors if improvement is realized. It is distribute
 #include <sstream>
 #include <iomanip>
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <memory>
 #include <chrono>
@@ -304,10 +305,19 @@ public:
 		if (verbose)
 		{
 			const double elapsed_time = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start_clock).count() + restored_time;
-			std::cout << "2^" << p << " - 1 is ";
-			if (is_prp) std::cout << "a probable prime";
-			else std::cout << "composite, res64 = " << get_string(res64);
-			std::cout << ", time = " << format_time(elapsed_time) << "." << std::endl << std::endl;
+			std::ostringstream ss;
+			ss << "2^" << p << " - 1 is ";
+			if (is_prp) ss << "a probable prime";
+			else ss << "composite, res64 = " << get_string(res64);
+			ss << ", time = " << format_time(elapsed_time) << "." << std::endl;
+			std::cout << ss.str() << std::endl;
+
+			std::ofstream out_file("output.txt", std::ios::app);
+			if (out_file.is_open())
+			{
+				out_file << ss.str();
+				out_file.close();
+			}
 		}
 		else
 		{
