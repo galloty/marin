@@ -529,18 +529,12 @@ public:
 
 	static void display_info(const uint32_t p)
 	{
-		const size_t n = ibdwt::transform_size(p);
-		const bool even = ibdwt::is_even((n % 5 == 0) ? n / 2 : n);
-
-		const size_t sqr_size = (n % 5 == 0) ? 10 : 4;
-		size_t r = n / sqr_size;
-		const size_t n_5 = (n % 5 == 0) ? n / 5 : n;
-		const int lcwm_wg_size = ilog2(std::min(n_5 / (even ? 4 : 8), size_t(1024)));
+		const size_t n = ibdwt::transform_size(p), n5 = (n % 5 == 0) ? n / 5 : n;
+		const int lcwm_wg_size = ilog2(std::min(n5 / 4, size_t(256)));
 
 		std::cout << p << ", " << n << " = ";
-		std::cout << sqr_size << " * ";
-		if (!even) { r /= 2; std::cout << "2 * "; }
-		std::cout << "4^" << ilog2(r) / 2;
+		if (n % 5 == 0) std::cout << "5*";
+		std::cout << "2^" << ilog2(n5);
 		std::cout << ", " << ((n / 4) >> lcwm_wg_size) << " * 2^" << lcwm_wg_size << std::endl;
 	}
 

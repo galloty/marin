@@ -479,7 +479,7 @@ public:
 		_digit_width.resize(n);
 		_carry.resize(n / 4);
 
-		ibdwt::roots54(n, _root.data());
+		ibdwt::roots(n, _root.data());
 		ibdwt::weights_widths(n, q, _weight.data(), _digit_width.data());
 	}
 
