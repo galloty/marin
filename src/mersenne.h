@@ -34,7 +34,8 @@ public:
 
 	size_t get_size() const override { return _n; }
 	void set(const Reg, const uint32) const override {}
-	void get(uint64 *, const Reg) const override  {}
+	void get(uint64 *, const Reg) const override {}
+	void set(const Reg, uint64 *) const override {}
 	void copy(const Reg, const Reg) const override {}
 	bool is_equal(const Reg, const Reg) const override { return false; }
 	void square_mul(const Reg, const uint32) const override {}
@@ -189,6 +190,18 @@ public:
 
 	void quit() { _quit = true; }
 
+
+	static uint64 mpz_get_ui64(const mpz_t & z)
+	{
+		mpz_t t; mpz_init_set_ui(t, 1); mpz_mul_2exp(t, t, 64); mpz_sub_ui(t, t, 1);
+		mpz_and(t, t, z);
+		const uint32 l = uint32(mpz_get_ui(t));
+		mpz_div_2exp(t, t, 32);
+		const uint32 h = uint32(mpz_get_ui(t));
+		mpz_clear(t);
+		return (uint64_t(h) << 32) | l;
+	}
+
 	bool check(const uint32_t p, const size_t device, const bool verbose = true, const bool test_GL = false)
 	{
 		// 3 registers
@@ -259,9 +272,11 @@ public:
 		}
 
 		// Probable prime?
-		engine::digit digit(eng, R0);
-		const bool is_prp = digit.equal_to(1);
-		const uint64_t res64 = digit.res64();
+		mpz_t z; mpz_init(z);
+		eng->get_mpz(z, R0);
+		const bool is_prp = (mpz_cmp_ui(z, 1) == 0);
+		const uint64_t res64 = mpz_get_ui64(z);
+		mpz_clear(z);
 
 		// d(t + 1) = d(t) * result
 		eng->set_multiplicand(R2, R1);
@@ -387,9 +402,11 @@ public:
 		}
 
 		// Prime?
-		engine::digit digit(eng, R0);
-		const bool is_prime = (digit.equal_to(0) || digit.equal_to_Mp());
-		const uint64_t res64 = digit.res64();
+		mpz_t z; mpz_init(z);
+		eng->get_mpz(z, R0);
+		const bool is_prime = (mpz_cmp_ui(z, 0) == 0);
+		const uint64_t res64 = mpz_get_ui64(z);
+		mpz_clear(z);
 
 		if (verbose)
 		{

@@ -578,10 +578,26 @@ public:
 		_gpu->write_reg(x.data(), size_t(dst));
 	}
 
+	void set(const Reg dst, uint64 * const d) const override
+	{
+		const size_t n = _n;
+		const uint64 * const weight = _weight.data();
+
+		// weight
+		std::vector<uint64> x(n);
+		for (size_t k = 0; k < n; ++k)
+		{
+			const uint64 w = weight[2 * (k / 4 + (k % 4) * (n / 4)) + 0];
+			x[k] = mod_mul(uint32(d[k]), w);
+		}
+
+		_gpu->write_reg(x.data(), size_t(dst));
+	}
+
 	void get(uint64 * const d, const Reg src) const override
 	{
 		const size_t n = _n;
-		const uint64 * const w = _weight.data();
+		const uint64 * const weight = _weight.data();
 		const uint8 * const width = _digit_width.data();
 
 		_gpu->read_reg(d, size_t(src));
@@ -590,7 +606,7 @@ public:
 		uint64 c = 0;
 		for (size_t k = 0; k < n; ++k)
 		{
-			const uint64 wi = w[2 * (k / 4 + (k % 4) * (n / 4)) + 1];
+			const uint64 wi = weight[2 * (k / 4 + (k % 4) * (n / 4)) + 1];
 			d[k] = adc(mod_mul(d[k], wi), width[k], c);
 		} 
 

@@ -500,14 +500,14 @@ public:
 	{
 		const size_t n = _n;
 		const uint64 * const x = &_reg.data()[size_t(src) * n];
-		const uint64 * const w = _weight.data();
+		const uint64 * const weight = _weight.data();
 		const uint8 * const width = _digit_width.data();
 
 		// unweight, carry (strong)
 		uint64 c = 0;
 		for (size_t k = 0; k < n; ++k)
 		{
-			const uint64 wi = w[2 * (k / 4 + (k % 4) * (n / 4)) + 1];
+			const uint64 wi = weight[2 * (k / 4 + (k % 4) * (n / 4)) + 1];
 			d[k] = adc(mod_mul(x[k], wi), width[k], c);
 		} 
 
@@ -522,6 +522,20 @@ public:
 
 		// encode
 		for (size_t k = 0; k < n; ++k) d[k] = uint32(d[k]) | (uint64(width[k]) << 32);
+	}
+
+	void set(const Reg dst, uint64 * const d) const override
+	{
+		const size_t n = _n;
+		uint64 * const x = const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]);
+		const uint64 * const weight = _weight.data();
+
+		// weight
+		for (size_t k = 0; k < n; ++k)
+		{
+			const uint64 w = weight[2 * (k / 4 + (k % 4) * (n / 4)) + 0];
+			x[k] = mod_mul(uint32(d[k]), w);
+		}
 	}
 
 	void copy(const Reg dst, const Reg src) const override
