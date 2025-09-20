@@ -69,6 +69,18 @@ INLINE uint64_4 adc_mul4(const uint64_4 lhs, const uint32 a, const uint8_4 width
 	return r;
 }
 
+INLINE uint64_4 addc4(const uint64_4 lhs, const uint64_4 rhs, const uint8_4 width, uint64 & carry)
+{
+	uint64_4 r;
+	uint64 c = carry;
+	c += rhs.s0; r.s0 = adc(lhs.s0, width.s0, c);
+	c += rhs.s1; r.s1 = adc(lhs.s1, width.s1, c);
+	c += rhs.s2; r.s2 = adc(lhs.s2, width.s2, c);
+	c += rhs.s3; r.s3 = adc(lhs.s3, width.s3, c);
+	carry = c;
+	return r;
+}
+
 class engine_cpu : public engine
 {
 private:
@@ -429,8 +441,8 @@ private:
 		}
 	}
 
-	// Unweight, carry, mul by a, weight
-	void carry_weight_mul(uint64_2 * const x2, const uint32 a = 1) const
+	// Unweight, mul by a, carry, weight
+	void carry_weight_mul(uint64_2 * const x2, const uint32 a) const
 	{
 		const size_t n = _n, n_4 = n / 4;
 		const uint64 inv_n_2 = _inv_n_2;
@@ -442,7 +454,6 @@ private:
 		for (size_t id = 0; id < n_4; ++id)
 		{
 			uint64_2 w2[4]; for (size_t i = 0; i < 4; ++i) w2[i] = weight2[id + i * n_4];
-			// const uint64_4 w = uint64_4(w2[0].s0, w2[1].s0, w2[2].s0, w2[3].s0);
 			const uint64_4 wi = uint64_4(w2[0].s1, w2[1].s1, w2[2].s1, w2[3].s1);
 
 			const uint8_4 wd = width4[id];
@@ -458,12 +469,47 @@ private:
 		{
 			uint64_2 w2[4]; for (size_t i = 0; i < 4; ++i) w2[i] = weight2[id + i * n_4];
 			const uint64_4 w = uint64_4(w2[0].s0, w2[1].s0, w2[2].s0, w2[3].s0);
-			// const uint64_4 wi = uint64_4(w2[0].s1, w2[1].s1, w2[2].s1, w2[3].s1);
 
 			const uint8_4 wd = width4[id];
 
 			const uint64_4 u = adc4(x[id], wd, carry[id]);
 			x[id] = mod_mul4(u, w);
+		}
+	}
+
+	// Unweight, add, carry, weight
+	void carry_weight_add(uint64_2 * const y2, const uint64_2 * const x2) const
+	{
+		const size_t n = _n, n_4 = n / 4;
+		uint64_4 * const y = reinterpret_cast<uint64_4 *>(y2);
+		const uint64_4 * const x = reinterpret_cast<const uint64_4 *>(x2);
+		const uint64_2 * const weight2 = reinterpret_cast<const uint64_2 *>(_weight.data());
+		const uint8_4 * const width4 = reinterpret_cast<const uint8_4 *>(_digit_width.data());
+		uint64 * const carry = const_cast<uint64 *>(_carry.data());
+
+		for (size_t id = 0; id < n_4; ++id)
+		{
+			uint64_2 w2[4]; for (size_t i = 0; i < 4; ++i) w2[i] = weight2[id + i * n_4];
+			const uint64_4 wi = uint64_4(w2[0].s1, w2[1].s1, w2[2].s1, w2[3].s1);
+
+			const uint8_4 wd = width4[id];
+
+			uint64 c = 0;
+			const uint64_4 u = mod_mul4(y[id], wi), v = mod_mul4(x[id], wi);
+			y[id] = addc4(u, v, wd, c);
+
+			carry[(id != n_4 - 1) ? id + 1 : 0] = c;
+		}
+
+		for (size_t id = 0; id < n_4; ++id)
+		{
+			uint64_2 w2[4]; for (size_t i = 0; i < 4; ++i) w2[i] = weight2[id + i * n_4];
+			const uint64_4 w = uint64_4(w2[0].s0, w2[1].s0, w2[2].s0, w2[3].s0);
+
+			const uint8_4 wd = width4[id];
+
+			const uint64_4 u = adc4(y[id], wd, carry[id]);
+			y[id] = mod_mul4(u, w);
 		}
 	}
 
@@ -599,7 +645,7 @@ public:
 		if (_even) { if (n > 4) forward_mul4x2(y); else forward_mul4(y); } else forward_mul8(y);
 	}
 
-	void mul(const Reg dst, const Reg src) const override
+	void mul(const Reg dst, const Reg src, const uint32 a = 1) const override
 	{
 		const size_t n = _n, s5 = (n % 5 == 0) ? 5 : 4;
 		uint64_2 * const x = reinterpret_cast<uint64_2 *>(const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]));
@@ -621,7 +667,7 @@ public:
 		if (s5 == 5) backward5_0(x);
 		else if (n >= 16) backward4_0(x);
 
-		carry_weight_mul(x);
+		carry_weight_mul(x, a);
 	}
 
 	void sub(const Reg src, const uint32 a) const override
@@ -642,6 +688,15 @@ public:
 				if (c == 0) return;
 			}
 		}
+	}
+
+	void add(const Reg dst, const Reg src) const override
+	{
+		const size_t n = _n;
+		const uint64_2 * const x = reinterpret_cast<const uint64_2 *>(&_reg.data()[size_t(src) * n]);
+		uint64_2 * const y = reinterpret_cast<uint64_2 *>(const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]));
+
+		carry_weight_add(y, x);
 	}
 
 	size_t get_register_data_size() const override  { return _n * sizeof(uint64); }

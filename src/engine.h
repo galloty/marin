@@ -34,14 +34,16 @@ public:
 	virtual void copy(const Reg dst, const Reg src) const = 0;
 	// src1 ?= src2
 	virtual bool is_equal(const Reg src1, const Reg src2) const = 0;
-	// src = src * a
+	// src = src^2 * a
 	virtual void square_mul(const Reg src, const uint32 a = 1) const = 0;
 	// dst = multiplicand(src). A multiplicand is the src of the mul operation.
 	virtual void set_multiplicand(const Reg dst, const Reg src) const = 0;
-	// dst = dst * src. src must be a multiplicand, created with set_multiplicand.
-	virtual void mul(const Reg dst, const Reg src) const = 0;
+	// dst = dst * src * a. src must be a multiplicand, created with set_multiplicand.
+	virtual void mul(const Reg dst, const Reg src, const uint32 a = 1) const = 0;
 	// src = src - a
 	virtual void sub(const Reg src, const uint32 a) const = 0;
+	// dst = dst + src
+	virtual void add(const Reg dst, const Reg src) const = 0;
 
 	// get size in bytes of a register
 	virtual size_t get_register_data_size() const = 0;
