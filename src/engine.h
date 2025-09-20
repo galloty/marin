@@ -105,7 +105,7 @@ public:
 		}
 	}
 
-	// copy z to dst
+	// copy a GMP integer to the content of dst.
 	void set_mpz(const Reg dst, const mpz_t & z) const
 	{
 		std::vector<uint64> data(get_size());
