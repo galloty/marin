@@ -26,7 +26,3 @@ A checkpoint file is created if the application is interrupted and *marin* resum
 
 The compiler must support the built-in __uint128_t type (GCC and Clang) or the _umul128 instruction (Visual Studio).  
 The code has been validated with GCC 15.2 on Windows ([MSYS2](https://www.msys2.org/)) and Linux.  
-
-## TODO
-
- - Radix-5 must be be moved from the last stage to the first one.  
