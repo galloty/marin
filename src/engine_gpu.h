@@ -638,18 +638,6 @@ public:
 		_gpu->copy(size_t(dst), size_t(src));
 	}
 
-	bool is_equal(const Reg src1, const Reg src2) const override
-	{
-		const size_t n = _n;
-		std::vector<uint64> x(n), y(n);
-
-		_gpu->read_reg(x.data(), size_t(src1));
-		_gpu->read_reg(y.data(), size_t(src2));
-
-		for (size_t k = 0; k < n; ++k) if (y[k] != x[k]) return false;
-		return true;
-	}
-
 	void square_mul(const Reg rsrc, const uint32 a = 1) const override
 	{
 		const size_t n = _n, src = size_t(rsrc);

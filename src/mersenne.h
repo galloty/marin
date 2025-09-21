@@ -37,7 +37,6 @@ public:
 	void get(uint64 *, const Reg) const override {}
 	void set(const Reg, uint64 *) const override {}
 	void copy(const Reg, const Reg) const override {}
-	bool is_equal(const Reg, const Reg) const override { return false; }
 	void square_mul(const Reg, const uint32) const override {}
 	void set_multiplicand(const Reg, const Reg) const override {}
 	void mul(const Reg, const Reg, const uint32) const override {}
@@ -316,7 +315,10 @@ public:
 		if (verbose) clearline();
 
 		// d(t + 1) = d(t)^{2^B} * 3^res?
-		if (!eng->is_equal(R0, R1)) throw std::runtime_error("Gerbicz-Li error checking failed!");
+		mpz_t z0, z1; mpz_inits(z0, z1, nullptr);
+		eng->get_mpz(z0, R0); eng->get_mpz(z1, R1);
+		if (mpz_cmp(z0, z1) != 0) throw std::runtime_error("Gerbicz-Li error checking failed!");
+		mpz_clears(z0, z1, nullptr);
 
 		if (verbose)
 		{
@@ -438,7 +440,8 @@ public:
 			(void)device;
 #endif
 
-		std::cout << p << " (" << eng->get_size() << std::flush;
+		const size_t n = eng->get_size();
+		std::cout << p << " (" << p / uint32(n) << ", " << n << std::flush;
 
 		eng->set(R0, 1);	// result = 1
 		eng->set(R1, 1);	// d(t) = 1
@@ -491,7 +494,10 @@ public:
 		std::cout << ")" << std::flush;
 
 		// d(t + 1) = d(t)^{2^B} * 3^res?
-		if (!eng->is_equal(R0, R1)) throw std::runtime_error(" Gerbicz-Li error checking failed!");
+		mpz_t z0, z1; mpz_inits(z0, z1, nullptr);
+		eng->get_mpz(z0, R0); eng->get_mpz(z1, R1);
+		if (mpz_cmp(z0, z1) != 0) throw std::runtime_error("Gerbicz-Li error checking failed!");
+		mpz_clears(z0, z1, nullptr);
 
 		delete eng;
 		return true;

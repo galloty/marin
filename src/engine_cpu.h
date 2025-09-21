@@ -62,10 +62,12 @@ INLINE uint64_4 adc4(const uint64_4 lhs, const uint8_4 width, const uint64 carry
 INLINE uint64_4 adc_mul4(const uint64_4 lhs, const uint32 a, const uint8_4 width, uint64 & carry)
 {
 	uint64_4 r;
-	r.s0 = adc_mul(lhs.s0, a, width.s0, carry);
-	r.s1 = adc_mul(lhs.s1, a, width.s1, carry);
-	r.s2 = adc_mul(lhs.s2, a, width.s2, carry);
-	r.s3 = adc_mul(lhs.s3, a, width.s3, carry);
+	uint64 c = carry;
+	r.s0 = adc_mul(lhs.s0, a, width.s0, c);
+	r.s1 = adc_mul(lhs.s1, a, width.s1, c);
+	r.s2 = adc_mul(lhs.s2, a, width.s2, c);
+	r.s3 = adc_mul(lhs.s3, a, width.s3, c);
+	carry = c;
 	return r;
 }
 
@@ -591,16 +593,6 @@ public:
 		uint64 * const y = const_cast<uint64 *>(&_reg.data()[size_t(dst) * n]);
 
 		for (size_t k = 0; k < n; ++k) y[k] = x[k];
-	}
-
-	bool is_equal(const Reg src1, const Reg src2) const override
-	{
-		const size_t n = _n;
-		const uint64 * const x = &_reg.data()[size_t(src1) * n];
-		const uint64 * const y = &_reg.data()[size_t(src2) * n];
-
-		for (size_t k = 0; k < n; ++k) if (y[k] != x[k]) return false;
-		return true;
 	}
 
 	void square_mul(const Reg src, const uint32 a = 1) const override
