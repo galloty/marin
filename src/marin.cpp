@@ -132,8 +132,8 @@ private:
 		ss << "  -LL       perform Lucas-Lehmer primality test" << std::endl;
 #if defined(GPU)
 		ss << "  -d <n>    set the device number (default 0)" << std::endl;
-		ss << "  -h        validate hardware (quick Gerbicz-Li error checking for each size)" << std::endl;
 #endif
+		ss << "  -h        validate hardware (quick Gerbicz-Li error checking for each size)" << std::endl;
 		return ss.str();
 	}
 
@@ -148,9 +148,8 @@ public:
 		uint32_t p = 0;
 		bool isLL = false;
 		size_t device = 0;
-#if defined(GPU)
 		bool valid = false;
-#endif
+
 		// parse args
 		for (size_t i = 0, size = args.size(); i < size; ++i)
 		{
@@ -175,18 +174,16 @@ public:
 				const std::string str = ((arg == "-d") && (i + 1 < size)) ? args[++i] : arg.substr(2);
 				device = size_t(std::atoi(str.c_str()));
 			}
+#endif
 			if (arg.substr(0, 2) == "-h")
 			{
 				valid = true;
 			}
-#endif
 		}
 
 		Mersenne & mersenne = Mersenne::get_instance();
 
-#if defined(GPU)
- 		if (valid) { mersenne.valid_gpu(device); return; }
-#endif
+ 		if (valid) { mersenne.valid_all(device); return; }
 
 		// Display info
 		// mersenne.info(); return;
