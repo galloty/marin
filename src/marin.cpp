@@ -128,7 +128,7 @@ private:
 #endif
 		std::ostringstream ss;
 		ss << "Usage: marin" << ext << " [options]  options may be specified in any order" << std::endl;
-		ss << "  -p <p>    exponent of the Mersenne number 2^p - 1 (3 <= p <= 1509949421)" << std::endl;
+		ss << "  -p <p>    exponent of the Mersenne number 2^p - 1 (7 <= p <= 1509949421)" << std::endl;
 		ss << "  -LL       perform Lucas-Lehmer primality test" << std::endl;
 #if defined(GPU)
 		ss << "  -d <n>    set the device number (default 0)" << std::endl;
@@ -163,7 +163,7 @@ public:
 				bool isprime = (p % 2 != 0);
 				for (uint32_t d = 3; p / d >= d; d += 2) if (p % d == 0) { isprime = false; break; }
 				if (!isprime) throw std::runtime_error("p must be an odd prime.");
-				if ((p < 3) || (p > 1509949421)) throw std::runtime_error("p is out of range.");
+				if ((p < 7) || (p > 1509949421)) throw std::runtime_error("p is out of range.");
 			}
 			if (arg.substr(0, 3) == "-LL")
 			{

@@ -18,7 +18,7 @@ The algorithm is different from Nick Craig-Wood's implementation:
 
 [*algo*](algo/) contains basic implementations of the algorithm. Two main aplications are generated:
 - *marin_cpu* is an implementation of the algorithm on CPU. It is not optimised, it helps to check and debug the OpenCL application.
-- *marin* is the optimised OpenCL application. It can test any prime exponent *p* in [3; 1,509,949,421].  
+- *marin* is the optimised OpenCL application. It can test any prime exponent *p* in [7; 1,509,949,421].  
 
 A checkpoint file is created if the application is interrupted and *marin* resumes from a checkpoint if it exists.
 
