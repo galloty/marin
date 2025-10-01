@@ -690,6 +690,11 @@ public:
 
 		carry_weight_add(y, x);
 	}
+	
+	void sub_reg(const Reg dst, const Reg src) const override
+	{
+		throw std::runtime_error("sub_reg not supported");
+	}
 
 	size_t get_register_data_size() const override  { return _n * sizeof(uint64); }
 

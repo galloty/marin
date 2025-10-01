@@ -42,6 +42,7 @@ public:
 	void mul(const Reg, const Reg, const uint32) const override {}
 	void sub(const Reg, const uint32) const override {}
 	void add(const Reg, const Reg) const override {}
+	void sub_reg(const Reg, const Reg) const override {}
 	size_t get_register_data_size() const override { return 0; }
 	bool get_data(std::vector<char> &, const Reg) const override { return false; }
 	bool set_data(const Reg, const std::vector<char> &) const override { return false; }
