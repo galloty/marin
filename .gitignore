@@ -1,0 +1,7 @@
+
+# local junk
+.DS_Store
+*.o
+marin
+marin_cpu
+output.txt
